@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Chesses Dialog Writer</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #FFFDF4;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: #111;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar ─────────────────────────────────────────────────────────── */
+  #sidebar {
+    width: 300px; min-width: 220px; max-width: 50vw; flex-shrink: 0;
+    background: #F0EBE0; border-right: 2px solid #111;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  #sidebar h1 {
+    font-size: 13px; font-weight: bold; letter-spacing: 1.5px;
+    padding: 12px 14px 8px 14px; border-bottom: 2px solid #111;
+  }
+  #connectBar { padding: 8px 10px; border-bottom: 1px solid #ccc; display: flex; flex-direction: column; gap: 6px; }
+  #connectBar label { font-size: 9.5px; color: #555; display: block; margin-top: 4px; }
+  #connectBar input {
+    width: 100%; font-family: inherit; font-size: 11px; padding: 5px 7px;
+    border: 1px solid #999; background: #fff;
+  }
+  #connectBar button {
+    font-family: inherit; font-size: 11px; font-weight: bold; letter-spacing: 1px;
+    background: #111; color: #fff; border: none; padding: 7px; cursor: pointer; margin-top: 4px;
+  }
+  #connectBar button:hover { background: #333; }
+  #connectBar button.secondary { background: #999; }
+  #connectBar .status { font-size: 10px; color: #777; line-height: 1.4; }
+  #connectBar .status.ok { color: #2a7a2a; }
+  #connectBar .status.err { color: #a02a2a; }
+  #connectForm { display: flex; flex-direction: column; }
+  #connectedBar { display: none; flex-direction: column; gap: 4px; }
+  #connectedBar.show { display: flex; }
+  #connectForm.hide { display: none; }
+
+  #searchBox { padding: 8px 10px; border-bottom: 1px solid #ccc; }
+  #searchBox input {
+    width: 100%; font-family: inherit; font-size: 12px; padding: 5px 7px;
+    border: 1px solid #999; background: #fff;
+  }
+
+  #charList { flex: 1; overflow-y: auto; }
+  .char-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px; cursor: pointer; border-bottom: 1px solid #e4ddce;
+  }
+  .char-item:hover { background: #e6dfcf; }
+  .char-item.active { background: #d8cfb6; font-weight: bold; }
+  .char-item img {
+    width: 28px; height: 28px; object-fit: cover; border: 1px solid #999;
+    background: #ddd; flex-shrink: 0;
+  }
+  .char-item .ci-emoji { font-size: 18px; width: 28px; text-align: center; flex-shrink: 0; }
+  .char-item .ci-name { flex: 1; font-size: 11px; line-height: 1.3; overflow: hidden; }
+  .char-item .ci-name small { display: block; color: #888; font-size: 9px; }
+  .badge {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+    border: 1px solid #111;
+  }
+  .badge.unclaimed { background: #fff; }
+  .badge.claimed   { background: #e8b84b; }
+  .badge.done      { background: #4EC83C; }
+
+  /* ── Main ────────────────────────────────────────────────────────────── */
+  #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+  #mainHeader {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 20px; border-bottom: 2px solid #111; background: #FFFEF0;
+    flex-shrink: 0; flex-wrap: wrap;
+  }
+  #mainHeader img { width: 64px; height: 64px; object-fit: cover; border: 2px solid #111; background: #ddd; }
+  #mainHeader .ph-emoji { font-size: 48px; width: 64px; text-align: center; }
+  #mainHeader .title { flex: 1; min-width: 160px; }
+  #mainHeader .title h2 { font-size: 20px; }
+  #mainHeader .title .sub { font-size: 11px; color: #777; }
+  #mainHeader .mh-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  #mainHeader button, .panel-toggle {
+    font-family: inherit; font-size: 11px; font-weight: bold; letter-spacing: 1px;
+    background: #111; color: #fff; border: none; padding: 8px 12px; cursor: pointer;
+  }
+  #mainHeader button:hover, .panel-toggle:hover { background: #333; }
+  #mainHeader button:disabled { background: #bbb; cursor: not-allowed; }
+  #mainHeader button.claim-btn { background: #c98a1e; }
+  #mainHeader button.done-btn { background: #2a7a2a; }
+  #mainHeader button.release-btn { background: #777; }
+  #saveStatus { font-size: 10px; color: #777; min-width: 90px; text-align: right; }
+
+  #claimBanner {
+    padding: 8px 20px; font-size: 11.5px; border-bottom: 2px solid #111; display: none;
+  }
+  #claimBanner.show { display: block; }
+  #claimBanner.mine     { background: #fff6dd; color: #6b4e00; }
+  #claimBanner.others   { background: #fde7e3; color: #7a241a; }
+  #claimBanner.done     { background: #e5f7e1; color: #1d5c1d; }
+
+  #body { flex: 1; display: flex; overflow: hidden; }
+  #triggerPane { flex: 1; overflow-y: auto; padding: 16px 32px 60px 32px; }
+  .trigger-card, .tier-label { max-width: 1100px; }
+  #refPane {
+    width: 340px; min-width: 240px; max-width: 45vw; flex-shrink: 0;
+    border-left: 2px solid #111; background: #F7F3E8; overflow-y: auto;
+    padding: 12px 16px;
+    display: none;
+  }
+  #refPane.open { display: block; }
+
+  .empty-state { padding: 60px 30px; text-align: center; color: #999; font-size: 13px; }
+
+  /* ── Trigger tiers ───────────────────────────────────────────────────── */
+  .tier-label {
+    font-size: 11px; font-weight: bold; letter-spacing: 1.5px; text-transform: uppercase;
+    color: #555; margin: 18px 0 8px 0; border-bottom: 2px solid #111; padding-bottom: 4px;
+  }
+  .tier-label:first-child { margin-top: 0; }
+  .tier-sub { font-size: 10px; font-weight: normal; color: #999; text-transform: none; letter-spacing: 0; }
+
+  .trigger-card {
+    background: #FFFEF0; border: 1px solid #ccc; margin-bottom: 14px;
+  }
+  .tc-head {
+    display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+    background: #F0EBE0; border-bottom: 1px solid #ccc; cursor: pointer;
+  }
+  .tc-head .tc-key { font-weight: bold; font-size: 12px; flex: 1; }
+  .tc-head .tc-count {
+    font-size: 11px; font-family: inherit; padding: 2px 7px; border-radius: 3px;
+    border: 1px solid #999; background: #fff;
+  }
+  .tc-desc {
+    padding: 8px 12px; font-size: 11px; color: #555; background: #fbf8ee;
+    border-bottom: 1px solid #e4ddce; line-height: 1.5;
+  }
+  .tc-lines { padding: 10px 12px; display: flex; flex-direction: column; gap: 10px; }
+  .line-row { display: flex; gap: 8px; align-items: flex-start; width: 100%; }
+  .line-row .line-col { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+  .line-row textarea {
+    width: 100%; min-width: 0; box-sizing: border-box;
+    font-family: inherit; font-size: 14px; padding: 10px 12px;
+    border: 1px solid #999; resize: vertical; min-height: 64px; line-height: 1.5;
+  }
+  .line-row textarea:disabled { background: #eee; color: #888; }
+  .line-row .line-controls { display: flex; flex-direction: column; gap: 3px; }
+  .line-row .line-controls button {
+    font-family: inherit; font-size: 10px; width: 24px; height: 17px; line-height: 1;
+    background: #ddd; border: 1px solid #999; cursor: pointer;
+  }
+  .line-row .line-controls button:hover { background: #ccc; }
+  .line-row .line-controls button:disabled { background: #eee; cursor: not-allowed; color: #aaa; }
+  .line-row .line-controls button.del { color: #a02a2a; }
+  .line-lint { font-size: 10px; color: #b5841f; padding-left: 2px; }
+  .line-lint.err { color: #a02a2a; }
+  .line-lint ul { padding-left: 16px; }
+
+  .tc-foot { padding: 6px 12px 12px 12px; display: flex; gap: 8px; align-items: center; }
+  .tc-foot button {
+    font-family: inherit; font-size: 10.5px; padding: 5px 10px; cursor: pointer;
+    background: #fff; border: 1px solid #999;
+  }
+  .tc-foot button:hover { background: #eee; }
+  .tc-foot button:disabled { color: #aaa; cursor: not-allowed; }
+  .tc-foot .avg-words { font-size: 10px; color: #888; margin-left: auto; }
+
+  /* ── Reference pane ──────────────────────────────────────────────────── */
+  #refPane h3 {
+    font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: #555;
+    border-bottom: 1px solid #ccc; padding-bottom: 4px; margin: 14px 0 8px 0;
+  }
+  #refPane h3:first-child { margin-top: 0; }
+  #refPane pre {
+    white-space: pre-wrap; font-family: inherit; font-size: 11px; line-height: 1.5;
+    color: #333;
+  }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <h1>DIALOG WRITER</h1>
+  <div id="connectBar">
+    <div id="connectForm">
+      <label>Your name (shown on claims)</label>
+      <input type="text" id="authorNameInput" placeholder="e.g. Zac">
+      <label>GitHub personal access token</label>
+      <input type="password" id="tokenInput" placeholder="ghp_...">
+      <div class="status" id="connectHelp">
+        Needs a token with <code>repo</code> scope on
+        <code>CycoLand/chesses-on-android</code> (it's private).
+        <a href="https://github.com/settings/tokens/new?description=Chesses%20Dialog%20Writer&scopes=repo" target="_blank" rel="noopener">Create one here</a>.
+        Stored only in your browser's local storage.
+      </div>
+      <button id="connectBtn">CONNECT</button>
+    </div>
+    <div id="connectedBar">
+      <div class="status ok" id="connectedStatus"></div>
+      <button class="secondary" id="disconnectBtn">DISCONNECT</button>
+    </div>
+  </div>
+  <div id="searchBox"><input type="text" id="searchInput" placeholder="Filter characters..." disabled></div>
+  <div id="charList"></div>
+</div>
+
+<div id="main">
+  <div id="claimBanner"></div>
+  <div id="mainHeader">
+    <div class="empty-state" style="padding:0;display:block;" id="headerEmpty">Connect, then select a character to begin.</div>
+    <template id="headerTemplate">
+      <img id="mhPortrait" style="display:none">
+      <div class="ph-emoji" id="mhEmoji" style="display:none"></div>
+      <div class="title">
+        <h2 id="mhName"></h2>
+        <div class="sub" id="mhVariantId"></div>
+      </div>
+      <div class="mh-actions">
+        <span id="saveStatus"></span>
+        <button class="panel-toggle" id="toggleRefBtn">REFERENCE ▸</button>
+        <button class="claim-btn" id="claimBtn">CLAIM</button>
+        <button class="release-btn" id="releaseBtn">RELEASE CLAIM</button>
+        <button class="done-btn" id="doneBtn">MARK REWRITTEN</button>
+        <button id="saveBtn" disabled>SAVE CHARACTER</button>
+        <button id="downloadBtn" disabled>DOWNLOAD JSON</button>
+      </div>
+    </template>
+  </div>
+  <div id="body">
+    <div id="triggerPane"><div class="empty-state">No character loaded.</div></div>
+    <div id="refPane"></div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ─────────────────────────────────────────────────────────────────────────
+// Config — which repo this tool edits, and where.
+// ─────────────────────────────────────────────────────────────────────────
+const REPO_OWNER = "CycoLand";
+const REPO_NAME = "chesses-on-android";
+const REPO_BRANCH = "main";
+const DIALOG_DATA_PATH = "chess-variants-app/dialog-data";
+const DOCS_PATH = "chess-variants-app/docs";
+
+const REQUIRED_KEYS = ["encounter_start", "player_good_move", "player_bad_move", "opponent_wins", "player_wins"];
+const UNIVERSAL_OPTIONAL_KEYS = ["reinforcement_deployed", "anti_cheese_reinforcement"];
+
+const LS_TOKEN_KEY = "chesses-dialog-writer:token";
+const LS_NAME_KEY = "chesses-dialog-writer:author";
+
+// ─────────────────────────────────────────────────────────────────────────
+// State
+// ─────────────────────────────────────────────────────────────────────────
+const state = {
+  token: null,
+  authorName: null,
+  manifest: null,          // _manifest.json contents
+  triggerCatalog: null,    // _trigger-catalog.json contents
+  claims: null,            // _claims.json contents ({ claims: { variantId: {...} } })
+  claimsSha: null,         // blob sha of _claims.json, for conditional PUT
+  currentId: null,
+  currentDoc: null,        // parsed per-character JSON currently being edited
+  currentSha: null,        // blob sha of the currently loaded character file
+  dirty: false,
+};
+
+// ─────────────────────────────────────────────────────────────────────────
+// GitHub Contents API helpers
+// ─────────────────────────────────────────────────────────────────────────
+
+function apiHeaders() {
+  return {
+    "Authorization": `Bearer ${state.token}`,
+    "Accept": "application/vnd.github+json",
+  };
+}
+
+function contentsUrl(path) {
+  return `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}?ref=${encodeURIComponent(REPO_BRANCH)}`;
+}
+
+// Fetches a file's { json, sha } via the Contents API. Throws on any
+// non-2xx/404 response with a readable message.
+async function fetchJsonFile(path) {
+  const res = await fetch(contentsUrl(path), { headers: apiHeaders() });
+  if (!res.ok) {
+    throw new Error(`GET ${path} failed: ${res.status} ${res.statusText}`);
+  }
+  const body = await res.json();
+  const text = b64DecodeUtf8(body.content);
+  return { json: JSON.parse(text), sha: body.sha };
+}
+
+async function tryFetchTextFile(path) {
+  try {
+    const res = await fetch(contentsUrl(path), { headers: apiHeaders() });
+    if (!res.ok) return null;
+    const body = await res.json();
+    return b64DecodeUtf8(body.content);
+  } catch (e) {
+    return null;
+  }
+}
+
+async function tryFetchImageDataUrl(path) {
+  try {
+    const res = await fetch(contentsUrl(path), { headers: apiHeaders() });
+    if (!res.ok) return null;
+    const body = await res.json();
+    // Contents API already returns base64 for binary files -- reuse directly.
+    const mime = path.endsWith(".png") ? "image/png" : "image/jpeg";
+    return `data:${mime};base64,${body.content.replace(/\n/g, "")}`;
+  } catch (e) {
+    return null;
+  }
+}
+
+// Writes a JSON file via the Contents API (create or update). `sha` must be
+// the current blob sha when updating an existing file, or omitted/null when
+// creating a brand new one. Returns the new sha.
+async function putJsonFile(path, obj, sha, message) {
+  const content = b64EncodeUtf8(JSON.stringify(obj, null, 2) + "\n");
+  const payload = {
+    message,
+    content,
+    branch: REPO_BRANCH,
+  };
+  if (sha) payload.sha = sha;
+
+  const res = await fetch(
+    `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}`,
+    {
+      method: "PUT",
+      headers: { ...apiHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    if (res.status === 409 || (res.status === 422 && /sha/i.test(body.message || ""))) {
+      throw new Error(
+        "Someone else saved this file since you loaded it. Reload the character " +
+        "(click it again in the sidebar) and reapply your changes."
+      );
+    }
+    throw new Error(`Save failed (${res.status}): ${body.message || res.statusText}`);
+  }
+  const body = await res.json();
+  return body.content.sha;
+}
+
+function b64EncodeUtf8(str) {
+  const bytes = new TextEncoder().encode(str);
+  let binary = "";
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary);
+}
+
+function b64DecodeUtf8(b64) {
+  const binary = atob(b64.replace(/\n/g, ""));
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Connect / disconnect
+// ─────────────────────────────────────────────────────────────────────────
+
+const connectForm = document.getElementById("connectForm");
+const connectedBar = document.getElementById("connectedBar");
+const connectedStatus = document.getElementById("connectedStatus");
+const tokenInput = document.getElementById("tokenInput");
+const authorNameInput = document.getElementById("authorNameInput");
+const searchInput = document.getElementById("searchInput");
+
+tokenInput.value = localStorage.getItem(LS_TOKEN_KEY) || "";
+authorNameInput.value = localStorage.getItem(LS_NAME_KEY) || "";
+
+document.getElementById("connectBtn").addEventListener("click", connect);
+document.getElementById("disconnectBtn").addEventListener("click", disconnect);
+
+async function connect() {
+  const token = tokenInput.value.trim();
+  const authorName = authorNameInput.value.trim();
+  if (!token) { alert("Paste a GitHub personal access token first."); return; }
+  if (!authorName) { alert("Enter your name so claims can be attributed to you."); return; }
+
+  state.token = token;
+  state.authorName = authorName;
+  localStorage.setItem(LS_TOKEN_KEY, token);
+  localStorage.setItem(LS_NAME_KEY, authorName);
+
+  connectedStatus.textContent = "Connecting...";
+  connectedStatus.className = "status";
+  connectForm.classList.add("hide");
+  connectedBar.classList.add("show");
+
+  try {
+    await loadManifestAndCatalog();
+    connectedStatus.textContent = `Connected as ${authorName}. ${state.manifest.characters.length} characters loaded.`;
+    connectedStatus.className = "status ok";
+    searchInput.disabled = false;
+    renderCharList();
+  } catch (e) {
+    connectedStatus.textContent = "Error: " + e.message;
+    connectedStatus.className = "status err";
+    connectForm.classList.remove("hide");
+    connectedBar.classList.remove("show");
+  }
+}
+
+function disconnect() {
+  state.token = null;
+  connectForm.classList.remove("hide");
+  connectedBar.classList.remove("show");
+  searchInput.disabled = true;
+  charListEl.innerHTML = "";
+}
+
+async function loadManifestAndCatalog() {
+  const manifestResult = await fetchJsonFile(`${DIALOG_DATA_PATH}/_manifest.json`);
+  state.manifest = manifestResult.json;
+
+  const catalogResult = await fetchJsonFile(`${DIALOG_DATA_PATH}/_trigger-catalog.json`);
+  state.triggerCatalog = catalogResult.json;
+
+  try {
+    const claimsResult = await fetchJsonFile(`${DIALOG_DATA_PATH}/_claims.json`);
+    state.claims = claimsResult.json;
+    state.claimsSha = claimsResult.sha;
+  } catch (e) {
+    // No claims file yet -- start fresh. putClaims() will create it.
+    state.claims = { claims: {} };
+    state.claimsSha = null;
+  }
+}
+
+function claimFor(variantId) {
+  return (state.claims.claims && state.claims.claims[variantId]) || { status: "unclaimed", owner: null };
+}
+
+async function saveClaims(message) {
+  const sha = await putJsonFile(`${DIALOG_DATA_PATH}/_claims.json`, state.claims, state.claimsSha, message);
+  state.claimsSha = sha;
+}
+
+// Auto-connect if a token was already saved from a previous visit.
+window.addEventListener("DOMContentLoaded", () => {
+  if (tokenInput.value && authorNameInput.value) {
+    connect();
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Sidebar character list
+// ─────────────────────────────────────────────────────────────────────────
+
+const charListEl = document.getElementById("charList");
+
+function renderCharList() {
+  const filter = (searchInput.value || "").toLowerCase();
+  charListEl.innerHTML = "";
+  for (const c of state.manifest.characters) {
+    if (filter && !c.name.toLowerCase().includes(filter) && !c.variantId.toLowerCase().includes(filter)) {
+      continue;
+    }
+    const item = document.createElement("div");
+    item.className = "char-item" + (c.variantId === state.currentId ? " active" : "");
+
+    const claim = claimFor(c.variantId);
+    const badge = document.createElement("div");
+    badge.className = "badge " + claim.status;
+    badge.title = claim.status === "unclaimed"
+      ? "Unclaimed"
+      : `${claim.status === "done" ? "Rewritten" : "Claimed"} by ${claim.owner || "someone"}`;
+
+    const thumb = document.createElement("img");
+    thumb.alt = "";
+    thumb.onerror = () => { thumb.style.display = "none"; emoji.style.display = "block"; };
+    const emoji = document.createElement("div");
+    emoji.className = "ci-emoji";
+    emoji.textContent = c.emoji || "?";
+    emoji.style.display = "none";
+
+    const nameWrap = document.createElement("div");
+    nameWrap.className = "ci-name";
+    nameWrap.innerHTML = `${escapeHtml(c.name)}<small>${escapeHtml(c.variantId)}</small>`;
+
+    item.appendChild(badge);
+    item.appendChild(thumb);
+    item.appendChild(emoji);
+    item.appendChild(nameWrap);
+    item.addEventListener("click", () => selectCharacter(c.variantId));
+    charListEl.appendChild(item);
+
+    resolvePortraitUrl(c.portrait).then((url) => {
+      if (url) { thumb.src = url; } else { thumb.style.display = "none"; emoji.style.display = "block"; }
+    });
+  }
+}
+
+searchInput.addEventListener("input", renderCharList);
+
+const portraitUrlCache = new Map();
+async function resolvePortraitUrl(relativePath) {
+  if (!relativePath) return null;
+  const fullPath = `chess-variants-app/${relativePath}`;
+  if (portraitUrlCache.has(fullPath)) return portraitUrlCache.get(fullPath);
+  const url = await tryFetchImageDataUrl(fullPath);
+  portraitUrlCache.set(fullPath, url);
+  return url;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Selecting / loading a character
+// ─────────────────────────────────────────────────────────────────────────
+
+const headerEmpty = document.getElementById("headerEmpty");
+const headerTemplate = document.getElementById("headerTemplate");
+const mainHeader = document.getElementById("mainHeader");
+const triggerPane = document.getElementById("triggerPane");
+const refPane = document.getElementById("refPane");
+const claimBanner = document.getElementById("claimBanner");
+
+async function selectCharacter(variantId) {
+  if (state.dirty) {
+    const proceed = confirm("You have unsaved changes for the current character. Discard them?");
+    if (!proceed) return;
+  }
+  state.currentId = variantId;
+  state.dirty = false;
+  renderCharList();
+
+  triggerPane.innerHTML = "<div class='empty-state'>Loading...</div>";
+  const { json: doc, sha } = await fetchJsonFile(`${DIALOG_DATA_PATH}/${variantId}.json`);
+  state.currentDoc = doc;
+  state.currentSha = sha;
+
+  renderHeader(doc);
+  renderClaimBanner(doc.variantId);
+  renderTriggerPane(doc);
+  renderRefPane(doc);
+}
+
+function isLockedForMe(variantId) {
+  const claim = claimFor(variantId);
+  return claim.status !== "unclaimed" && claim.owner !== state.authorName;
+}
+
+function renderClaimBanner(variantId) {
+  const claim = claimFor(variantId);
+  claimBanner.classList.remove("mine", "others", "done");
+  if (claim.status === "unclaimed") {
+    claimBanner.classList.remove("show");
+    return;
+  }
+  claimBanner.classList.add("show");
+  if (claim.status === "done") {
+    claimBanner.classList.add("done");
+    claimBanner.textContent = `Marked as rewritten by ${claim.owner}. Editing is still allowed, but check with them before making big changes.`;
+  } else if (claim.owner === state.authorName) {
+    claimBanner.classList.add("mine");
+    claimBanner.textContent = `Claimed by you. Release it or mark it rewritten when you're done.`;
+  } else {
+    claimBanner.classList.add("others");
+    claimBanner.innerHTML = `Claimed by ${escapeHtml(claim.owner)}. Editing is disabled to avoid collisions. ` +
+      `<a href="#" id="forceClaimLink">Force take over</a> if they've gone quiet.`;
+    const link = document.getElementById("forceClaimLink");
+    if (link) link.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (confirm(`Take over this claim from ${claim.owner}? Only do this if you've confirmed they're not actively working on it.`)) {
+        claimCharacter(variantId);
+      }
+    });
+  }
+}
+
+function renderHeader(doc) {
+  headerEmpty.style.display = "none";
+  mainHeader.querySelectorAll(":scope > *:not(#headerEmpty)").forEach((el) => el.remove());
+  const clone = headerTemplate.content.cloneNode(true);
+  mainHeader.appendChild(clone);
+
+  document.getElementById("mhName").textContent = doc.name;
+  document.getElementById("mhVariantId").textContent = doc.variantId;
+
+  const img = document.getElementById("mhPortrait");
+  const emojiEl = document.getElementById("mhEmoji");
+  resolvePortraitUrl(doc.portrait).then((url) => {
+    if (url) { img.src = url; img.style.display = "block"; }
+    else { emojiEl.textContent = doc.emoji || "?"; emojiEl.style.display = "block"; }
+  });
+
+  document.getElementById("saveBtn").addEventListener("click", saveCurrentCharacter);
+  document.getElementById("downloadBtn").addEventListener("click", downloadCurrentCharacter);
+  document.getElementById("toggleRefBtn").addEventListener("click", () => {
+    refPane.classList.toggle("open");
+  });
+  document.getElementById("claimBtn").addEventListener("click", () => claimCharacter(doc.variantId));
+  document.getElementById("releaseBtn").addEventListener("click", () => releaseCharacter(doc.variantId));
+  document.getElementById("doneBtn").addEventListener("click", () => markDone(doc.variantId));
+
+  updateActionButtons(doc.variantId);
+  setSaveButtonsEnabled(false);
+}
+
+function updateActionButtons(variantId) {
+  const claim = claimFor(variantId);
+  const claimBtn = document.getElementById("claimBtn");
+  const releaseBtn = document.getElementById("releaseBtn");
+  const doneBtn = document.getElementById("doneBtn");
+  const isMine = claim.owner === state.authorName && claim.status !== "unclaimed";
+
+  claimBtn.style.display = claim.status === "unclaimed" ? "inline-block" : "none";
+  releaseBtn.style.display = isMine && claim.status === "claimed" ? "inline-block" : "none";
+  doneBtn.style.display = (isMine || claim.status === "unclaimed") ? "inline-block" : "none";
+  doneBtn.textContent = claim.status === "done" ? "ALREADY REWRITTEN ✓" : "MARK REWRITTEN";
+  doneBtn.disabled = claim.status === "done";
+}
+
+async function claimCharacter(variantId) {
+  state.claims.claims[variantId] = {
+    status: "claimed",
+    owner: state.authorName,
+    claimedAt: new Date().toISOString(),
+    doneAt: null,
+  };
+  try {
+    await saveClaims(`dialog: ${state.authorName} claims ${variantId}`);
+    renderClaimBanner(variantId);
+    updateActionButtons(variantId);
+    renderCharList();
+    setEditingLocked(isLockedForMe(variantId));
+  } catch (e) {
+    alert("Couldn't save claim: " + e.message);
+  }
+}
+
+async function releaseCharacter(variantId) {
+  state.claims.claims[variantId] = { status: "unclaimed", owner: null, claimedAt: null, doneAt: null };
+  try {
+    await saveClaims(`dialog: ${state.authorName} releases claim on ${variantId}`);
+    renderClaimBanner(variantId);
+    updateActionButtons(variantId);
+    renderCharList();
+    setEditingLocked(isLockedForMe(variantId));
+  } catch (e) {
+    alert("Couldn't release claim: " + e.message);
+  }
+}
+
+async function markDone(variantId) {
+  const claim = claimFor(variantId);
+  state.claims.claims[variantId] = {
+    status: "done",
+    owner: claim.owner || state.authorName,
+    claimedAt: claim.claimedAt || null,
+    doneAt: new Date().toISOString(),
+  };
+  try {
+    await saveClaims(`dialog: ${state.authorName} marks ${variantId} as rewritten`);
+    renderClaimBanner(variantId);
+    updateActionButtons(variantId);
+    renderCharList();
+  } catch (e) {
+    alert("Couldn't mark as rewritten: " + e.message);
+  }
+}
+
+function setSaveButtonsEnabled(dirty) {
+  const saveBtn = document.getElementById("saveBtn");
+  const downloadBtn = document.getElementById("downloadBtn");
+  if (saveBtn) saveBtn.disabled = isLockedForMe(state.currentId);
+  if (downloadBtn) downloadBtn.disabled = false;
+  const status = document.getElementById("saveStatus");
+  if (status) status.textContent = dirty ? "unsaved changes" : "";
+}
+
+function markDirty() {
+  state.dirty = true;
+  setSaveButtonsEnabled(true);
+}
+
+function setEditingLocked(locked) {
+  document.querySelectorAll("#triggerPane textarea, #triggerPane .tc-foot button, #triggerPane .line-controls button")
+    .forEach((el) => { el.disabled = locked; });
+  setSaveButtonsEnabled(state.dirty);
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Linter — mirrors the checklist in docs/13-dialog-guidelines.md Part 5.
+// Intentionally non-blocking: flags issues, never prevents saving.
+// ─────────────────────────────────────────────────────────────────────────
+
+function lintLine(text) {
+  const warnings = [];
+  const trimmed = text.trim();
+  if (trimmed.length === 0) {
+    // Blank lines are allowed and can be intentional (character says
+    // nothing for that line). Not flagged as an error.
+    return { warnings: [], isError: false };
+  }
+
+  if (/—/.test(trimmed)) warnings.push("Contains an em-dash (forbidden — restructure the sentence).");
+
+  const sentences = trimmed
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
+  if (sentences.length > 2) warnings.push(`${sentences.length} sentences (max 2).`);
+
+  for (const s of sentences) {
+    const wordCount = s.split(/\s+/).filter(Boolean).length;
+    if (wordCount < 5) warnings.push(`Sentence "${truncate(s, 30)}" has only ${wordCount} word(s) (min 5).`);
+  }
+
+  const totalWords = trimmed.split(/\s+/).filter(Boolean).length;
+  if (totalWords < 8) warnings.push(`Only ${totalWords} words total (target 8-25).`);
+  if (totalWords > 25) warnings.push(`${totalWords} words total (target 8-25).`);
+
+  const upperRun = trimmed.match(/\b[A-Z]{2,}\b/g);
+  if (upperRun && upperRun.length > 0) {
+    warnings.push(`ALL CAPS word(s) found: ${upperRun.slice(0, 3).join(", ")}.`);
+  }
+
+  const exclamations = (trimmed.match(/!/g) || []).length;
+  if (exclamations >= 2) warnings.push(`${exclamations} exclamation marks in one line.`);
+
+  return { warnings, isError: false };
+}
+
+function truncate(s, n) { return s.length > n ? s.slice(0, n - 1) + "…" : s; }
+
+function averageWordsPerLine(lines) {
+  if (lines.length === 0) return 0;
+  const total = lines.reduce((sum, l) => sum + l.trim().split(/\s+/).filter(Boolean).length, 0);
+  return total / lines.length;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Trigger pane rendering
+// ─────────────────────────────────────────────────────────────────────────
+
+function renderTriggerPane(doc) {
+  triggerPane.innerHTML = "";
+
+  triggerPane.appendChild(
+    buildTierSection("Required", "Every character typically has lines for these; count is up to you.",
+      REQUIRED_KEYS, doc)
+  );
+  triggerPane.appendChild(
+    buildTierSection("Universal Optional", "Optional; use as many or as few lines as you like.",
+      UNIVERSAL_OPTIONAL_KEYS, doc)
+  );
+
+  const presentVariantKeys = Object.keys(doc.dialog).filter(
+    (k) => !REQUIRED_KEYS.includes(k) && !UNIVERSAL_OPTIONAL_KEYS.includes(k)
+  );
+  triggerPane.appendChild(
+    buildTierSection("Variant-Specific", `Triggers fired by ${doc.variantId}'s own mechanics.`,
+      presentVariantKeys, doc)
+  );
+
+  setEditingLocked(isLockedForMe(doc.variantId));
+}
+
+function buildTierSection(label, subLabel, keys, doc) {
+  const wrap = document.createDocumentFragment();
+  const heading = document.createElement("div");
+  heading.className = "tier-label";
+  heading.innerHTML = `${label} <span class="tier-sub">— ${escapeHtml(subLabel)}</span>`;
+  wrap.appendChild(heading);
+
+  if (keys.length === 0) {
+    const none = document.createElement("div");
+    none.className = "empty-state";
+    none.style.padding = "10px 0";
+    none.textContent = "None for this character.";
+    wrap.appendChild(none);
+  }
+
+  for (const key of keys) {
+    wrap.appendChild(buildTriggerCard(key, doc));
+  }
+
+  return wrap;
+}
+
+function buildTriggerCard(key, doc) {
+  const def = state.triggerCatalog[key] || { description: "", constName: key.toUpperCase() };
+  const lines = doc.dialog[key] ? [...doc.dialog[key]] : [];
+  doc.dialog[key] = lines;
+
+  const card = document.createElement("div");
+  card.className = "trigger-card";
+
+  const head = document.createElement("div");
+  head.className = "tc-head";
+  const countBadge = document.createElement("span");
+  countBadge.className = "tc-count";
+  head.innerHTML = `<span class="tc-key">${escapeHtml(key)}</span>`;
+  head.appendChild(countBadge);
+  card.appendChild(head);
+
+  const desc = document.createElement("div");
+  desc.className = "tc-desc";
+  desc.textContent = def.description || "(no description scraped — see DialogTrigger.kt)";
+  card.appendChild(desc);
+
+  const linesWrap = document.createElement("div");
+  linesWrap.className = "tc-lines";
+  card.appendChild(linesWrap);
+
+  const foot = document.createElement("div");
+  foot.className = "tc-foot";
+  const addBtn = document.createElement("button");
+  addBtn.textContent = "+ ADD LINE";
+  addBtn.addEventListener("click", () => {
+    lines.push("");
+    rebuildLines();
+    markDirty();
+  });
+  const avgEl = document.createElement("span");
+  avgEl.className = "avg-words";
+  foot.appendChild(addBtn);
+  foot.appendChild(avgEl);
+  card.appendChild(foot);
+
+  let collapsed = false;
+  head.addEventListener("click", () => {
+    collapsed = !collapsed;
+    linesWrap.style.display = collapsed ? "none" : "flex";
+    desc.style.display = collapsed ? "none" : "block";
+    foot.style.display = collapsed ? "none" : "flex";
+  });
+
+  function updateCountBadge() {
+    const n = lines.length;
+    countBadge.textContent = `${n} line${n === 1 ? "" : "s"}`;
+    avgEl.textContent = n > 0 ? `avg ${averageWordsPerLine(lines).toFixed(1)} words/line` : "";
+  }
+
+  function rebuildLines() {
+    linesWrap.innerHTML = "";
+    lines.forEach((text, idx) => {
+      linesWrap.appendChild(buildLineRow(text, idx));
+    });
+    updateCountBadge();
+  }
+
+  function buildLineRow(text, idx) {
+    const row = document.createElement("div");
+    row.className = "line-row";
+
+    const col = document.createElement("div");
+    col.className = "line-col";
+
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.addEventListener("input", () => {
+      lines[idx] = ta.value;
+      updateCountBadge();
+      renderLint();
+      markDirty();
+    });
+    col.appendChild(ta);
+
+    const lintEl = document.createElement("div");
+    lintEl.className = "line-lint";
+    col.appendChild(lintEl);
+
+    function renderLint() {
+      const { warnings, isError } = lintLine(ta.value);
+      lintEl.className = "line-lint" + (isError ? " err" : "");
+      if (warnings.length === 0) { lintEl.innerHTML = ""; return; }
+      lintEl.innerHTML = "<ul>" + warnings.map((w) => `<li>${escapeHtml(w)}</li>`).join("") + "</ul>";
+    }
+    renderLint();
+
+    row.appendChild(col);
+
+    const controls = document.createElement("div");
+    controls.className = "line-controls";
+    const upBtn = document.createElement("button");
+    upBtn.textContent = "↑";
+    upBtn.title = "Move up";
+    upBtn.addEventListener("click", () => {
+      if (idx === 0) return;
+      [lines[idx - 1], lines[idx]] = [lines[idx], lines[idx - 1]];
+      rebuildLines();
+      markDirty();
+    });
+    const downBtn = document.createElement("button");
+    downBtn.textContent = "↓";
+    downBtn.title = "Move down";
+    downBtn.addEventListener("click", () => {
+      if (idx === lines.length - 1) return;
+      [lines[idx + 1], lines[idx]] = [lines[idx], lines[idx + 1]];
+      rebuildLines();
+      markDirty();
+    });
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "✕";
+    delBtn.className = "del";
+    delBtn.title = "Delete line";
+    delBtn.addEventListener("click", () => {
+      lines.splice(idx, 1);
+      rebuildLines();
+      markDirty();
+    });
+    controls.appendChild(upBtn);
+    controls.appendChild(downBtn);
+    controls.appendChild(delBtn);
+    row.appendChild(controls);
+
+    return row;
+  }
+
+  rebuildLines();
+  return card;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Reference pane: character design doc + guideline checklist link
+// ─────────────────────────────────────────────────────────────────────────
+
+async function renderRefPane(doc) {
+  refPane.innerHTML = "<div class='empty-state' style='padding:20px 0;'>Loading reference material...</div>";
+
+  const designDocText = await tryFetchTextFile(`${DOCS_PATH}/character-designs/${doc.variantId}.md`);
+  const guidelinesText = await tryFetchTextFile(`${DOCS_PATH}/13-dialog-guidelines.md`);
+
+  refPane.innerHTML = "";
+
+  const h1 = document.createElement("h3");
+  h1.textContent = `Character Bible — ${doc.variantId}`;
+  refPane.appendChild(h1);
+  const pre1 = document.createElement("pre");
+  pre1.textContent = designDocText || "(no character-designs/" + doc.variantId + ".md found)";
+  refPane.appendChild(pre1);
+
+  const h2 = document.createElement("h3");
+  h2.textContent = "Dialog Guidelines (doc 13)";
+  refPane.appendChild(h2);
+  const pre2 = document.createElement("pre");
+  pre2.textContent = guidelinesText || "(docs/13-dialog-guidelines.md not found)";
+  refPane.appendChild(pre2);
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Save / export
+// ─────────────────────────────────────────────────────────────────────────
+
+function computeMeta(doc) {
+  const triggersCovered = Object.keys(doc.dialog).length;
+  const totalLines = Object.values(doc.dialog).reduce((sum, arr) => sum + arr.length, 0);
+  return { triggersCovered, totalLines };
+}
+
+async function saveCurrentCharacter() {
+  if (!state.currentDoc) return;
+  if (isLockedForMe(state.currentId)) {
+    alert("This character is claimed by someone else. Can't save.");
+    return;
+  }
+  const doc = state.currentDoc;
+  doc._meta = computeMeta(doc);
+
+  try {
+    const newSha = await putJsonFile(
+      `${DIALOG_DATA_PATH}/${doc.variantId}.json`,
+      doc,
+      state.currentSha,
+      `dialog: update ${doc.name} (${doc.variantId}) via Dialog Writer`
+    );
+    state.currentSha = newSha;
+
+    const entry = state.manifest.characters.find((c) => c.variantId === doc.variantId);
+    if (entry) {
+      entry.triggersCovered = doc._meta.triggersCovered;
+      entry.totalLines = doc._meta.totalLines;
+    }
+    // Best-effort manifest sync; not critical if this particular write loses
+    // a race, since the manifest is informational and gets fully regenerated
+    // by parse-catalog.mjs periodically anyway.
+    try {
+      const manifestResult = await fetchJsonFile(`${DIALOG_DATA_PATH}/_manifest.json`);
+      await putJsonFile(
+        `${DIALOG_DATA_PATH}/_manifest.json`,
+        state.manifest,
+        manifestResult.sha,
+        `dialog: update manifest coverage for ${doc.variantId}`
+      );
+    } catch (e) { /* non-fatal */ }
+
+    state.dirty = false;
+    setSaveButtonsEnabled(false);
+    document.getElementById("saveStatus").textContent = "saved " + new Date().toLocaleTimeString();
+    renderCharList();
+  } catch (e) {
+    alert("Save failed: " + e.message);
+  }
+}
+
+function downloadCurrentCharacter() {
+  if (!state.currentDoc) return;
+  const doc = state.currentDoc;
+  doc._meta = computeMeta(doc);
+  const blob = new Blob([JSON.stringify(doc, null, 2) + "\n"], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${doc.variantId}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Utilities
+// ─────────────────────────────────────────────────────────────────────────
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+window.addEventListener("beforeunload", (e) => {
+  if (state.dirty) {
+    e.preventDefault();
+    e.returnValue = "";
+  }
+});
+</script>
+</body>
+</html>
