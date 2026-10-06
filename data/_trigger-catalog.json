@@ -1,0 +1,607 @@
+{
+  "encounter_start": {
+    "constName": "ENCOUNTER_START",
+    "description": "Fired once when the encounter begins (after the encounter warning is acknowledged, or immediately if no warning applies).",
+    "tier": "required"
+  },
+  "player_good_move": {
+    "constName": "PLAYER_GOOD_MOVE",
+    "description": "Fired when the AI evaluates the player's last move as significantly beneficial to the player (eval shift > 1.5 pawns in player's favour).",
+    "tier": "required"
+  },
+  "player_bad_move": {
+    "constName": "PLAYER_BAD_MOVE",
+    "description": "Fired when the AI evaluates the player's last move as significantly harmful to the player (eval shift > 1.5 pawns in AI's favour).",
+    "tier": "required"
+  },
+  "opponent_wins": {
+    "constName": "OPPONENT_WINS",
+    "description": "Fired when the opponent wins (player is checkmated / runs out of HP).",
+    "tier": "required"
+  },
+  "player_wins": {
+    "constName": "PLAYER_WINS",
+    "description": "Fired when the player wins (opponent is checkmated / condition met).",
+    "tier": "required"
+  },
+  "reinforcement_deployed": {
+    "constName": "REINFORCEMENT_DEPLOYED",
+    "description": "Fired when an elite opponent deploys their mid-fight reinforcement pieces onto the board. Only fires for elite encounters. The character line should feel like a comeback taunt.",
+    "tier": "universal-optional"
+  },
+  "anti_cheese_reinforcement": {
+    "constName": "ANTI_CHEESE_REINFORCEMENT",
+    "description": "Fired once, before the first move, when [com.chesses.ruleskit.AntiCheeseResolver] detects that the player's starting position contains a mate-in-1.  The opponent places blocking pawns in response; this trigger fires on the first pawn placement so the player sees the character call them out before the board changes. Lines should subtly dig at the player for attempting to bypass the challenge of the game — smug, not panicked; amused, not threatened. Bypass-cooldown: always fires regardless of how recently the last line was shown (it fires at most once per encounter and is a one-off moment).",
+    "tier": "universal-optional"
+  },
+  "landmine.player_mine_triggered": {
+    "constName": "PLAYER_MINE_TRIGGERED",
+    "description": "The player's piece stepped on a mine and was destroyed.",
+    "tier": "variant-specific"
+  },
+  "landmine.ai_mine_triggered": {
+    "constName": "AI_MINE_TRIGGERED",
+    "description": "The AI's piece stepped on a mine and was destroyed.",
+    "tier": "variant-specific"
+  },
+  "landmine.player_near_mine": {
+    "constName": "PLAYER_NEAR_MINE",
+    "description": "The player just moved a piece to a square adjacent (including diagonally) to a mine, without landing on it.",
+    "tier": "variant-specific"
+  },
+  "leashed.player_piece_dragged": {
+    "constName": "PLAYER_PIECE_DRAGGED",
+    "description": "The player pushed a leash pawn and dragged its chained piece (not the king) along with it.",
+    "tier": "variant-specific"
+  },
+  "leashed.ai_piece_dragged": {
+    "constName": "AI_PIECE_DRAGGED",
+    "description": "The AI pushed a leash pawn and dragged its chained piece (not the king) along with it.",
+    "tier": "variant-specific"
+  },
+  "leashed.player_king_dragged": {
+    "constName": "PLAYER_KING_DRAGGED",
+    "description": "The player's king was specifically the piece dragged by its leash pawn this move.",
+    "tier": "variant-specific"
+  },
+  "leashed.ai_king_dragged": {
+    "constName": "AI_KING_DRAGGED",
+    "description": "The AI's king was specifically the piece dragged by its leash pawn this move.",
+    "tier": "variant-specific"
+  },
+  "leashed.player_leash_snapped": {
+    "constName": "PLAYER_LEASH_SNAPPED",
+    "description": "One of the player's leashes broke permanently this move (guardian pawn captured, promoted, or captured diagonally).",
+    "tier": "variant-specific"
+  },
+  "leashed.ai_leash_snapped": {
+    "constName": "AI_LEASH_SNAPPED",
+    "description": "One of the AI's leashes broke permanently this move.",
+    "tier": "variant-specific"
+  },
+  "mana.player_spell_cast": {
+    "constName": "PLAYER_SPELL_CAST",
+    "description": "The player cast a spell (Fireball, Decay, or Summon Pawn).",
+    "tier": "variant-specific"
+  },
+  "mana.ai_spell_cast": {
+    "constName": "AI_SPELL_CAST",
+    "description": "The AI cast a spell (Fireball, Decay, or Summon Pawn).",
+    "tier": "variant-specific"
+  },
+  "three_check.player_check_delivered": {
+    "constName": "PLAYER_CHECK_DELIVERED",
+    "description": "The player delivered a check (incrementing their check count toward 3).",
+    "tier": "variant-specific"
+  },
+  "three_check.ai_check_delivered": {
+    "constName": "AI_CHECK_DELIVERED",
+    "description": "The AI delivered a check (incrementing its check count toward 3).",
+    "tier": "variant-specific"
+  },
+  "cylinder.player_wrapped_move": {
+    "constName": "PLAYER_WRAPPED_MOVE",
+    "description": "The player made a move that crossed the cylinder seam (wrap-around).",
+    "tier": "variant-specific"
+  },
+  "cylinder.ai_wrapped_move": {
+    "constName": "AI_WRAPPED_MOVE",
+    "description": "The AI made a move that crossed the cylinder seam (wrap-around).",
+    "tier": "variant-specific"
+  },
+  "atomic.player_explosion": {
+    "constName": "PLAYER_EXPLOSION",
+    "description": "The player made a capture that triggered an explosion.",
+    "tier": "variant-specific"
+  },
+  "atomic.ai_explosion": {
+    "constName": "AI_EXPLOSION",
+    "description": "The AI made a capture that triggered an explosion.",
+    "tier": "variant-specific"
+  },
+  "rebound.player_bounce_capture": {
+    "constName": "PLAYER_BOUNCE_CAPTURE",
+    "description": "The player made a capture that required the piece to bounce off a wall.",
+    "tier": "variant-specific"
+  },
+  "rebound.ai_bounce_capture": {
+    "constName": "AI_BOUNCE_CAPTURE",
+    "description": "The AI made a capture that required the piece to bounce off a wall.",
+    "tier": "variant-specific"
+  },
+  "sabotage.phase_ended": {
+    "constName": "SABOTAGE_PHASE_ENDED",
+    "description": "The final sabotage ply has been played; normal chess now begins.",
+    "tier": "variant-specific"
+  },
+  "sabotage.player_promotion": {
+    "constName": "PLAYER_SABOTAGE_PROMOTION",
+    "description": "The player promoted the AI's pawn during the sabotage phase.",
+    "tier": "variant-specific"
+  },
+  "sabotage.ai_promotion": {
+    "constName": "AI_SABOTAGE_PROMOTION",
+    "description": "The AI promoted the player's pawn during the sabotage phase.",
+    "tier": "variant-specific"
+  },
+  "teleportation.player_swap_used": {
+    "constName": "PLAYER_SWAP_USED",
+    "description": "The player used a swap move.",
+    "tier": "variant-specific"
+  },
+  "teleportation.ai_swap_used": {
+    "constName": "AI_SWAP_USED",
+    "description": "The AI used a swap move.",
+    "tier": "variant-specific"
+  },
+  "identity_theft.player_identity_stolen": {
+    "constName": "PLAYER_IDENTITY_STOLEN",
+    "description": "The player made a capture that transformed their piece into the captured type.",
+    "tier": "variant-specific"
+  },
+  "identity_theft.ai_identity_stolen": {
+    "constName": "AI_IDENTITY_STOLEN",
+    "description": "The AI made a capture that transformed its piece into the captured type.",
+    "tier": "variant-specific"
+  },
+  "pawn_protection.player_pawn_captured": {
+    "constName": "PLAYER_PAWN_CAPTURED",
+    "description": "The player captured one of the AI's pawns.",
+    "tier": "variant-specific"
+  },
+  "pawn_protection.ai_pawn_captured": {
+    "constName": "AI_PAWN_CAPTURED",
+    "description": "The AI captured one of the player's pawns.",
+    "tier": "variant-specific"
+  },
+  "table_tilt.player_tilt_used": {
+    "constName": "PLAYER_TILT_USED",
+    "description": "The player used the tilt action this turn.",
+    "tier": "variant-specific"
+  },
+  "table_tilt.ai_tilt_used": {
+    "constName": "AI_TILT_USED",
+    "description": "The AI used the tilt action this turn.",
+    "tier": "variant-specific"
+  },
+  "frontline.player_king_captures": {
+    "constName": "PLAYER_KING_CAPTURES",
+    "description": "The player's king made a capture.",
+    "tier": "variant-specific"
+  },
+  "frontline.ai_king_captures": {
+    "constName": "AI_KING_CAPTURES",
+    "description": "The AI's king made a capture.",
+    "tier": "variant-specific"
+  },
+  "both_sides.player_commandeers": {
+    "constName": "PLAYER_COMMANDEERS_PIECE",
+    "description": "The player is moving one of the AI's pieces (commandeering phase).",
+    "tier": "variant-specific"
+  },
+  "both_sides.ai_commandeers": {
+    "constName": "AI_COMMANDEERS_PIECE",
+    "description": "The AI is moving one of the player's pieces (commandeering phase).",
+    "tier": "variant-specific"
+  },
+  "both_sides.ai_friendly_fire": {
+    "constName": "AI_FRIENDLY_FIRE",
+    "description": "The AI used a player's piece to capture another player's piece.",
+    "tier": "variant-specific"
+  },
+  "gay_chess.player_king_taken": {
+    "constName": "PLAYER_KING_TAKEN",
+    "description": "The player captured one of the AI's kings.",
+    "tier": "variant-specific"
+  },
+  "gay_chess.ai_king_taken": {
+    "constName": "AI_KING_TAKEN",
+    "description": "The AI captured one of the player's kings.",
+    "tier": "variant-specific"
+  },
+  "gay_chess_2.player_queen_captured": {
+    "constName": "PLAYER_QUEEN_CAPTURED",
+    "description": "The player captured one of the AI's queens.",
+    "tier": "variant-specific"
+  },
+  "gay_chess_2.ai_queen_captured": {
+    "constName": "AI_QUEEN_CAPTURED",
+    "description": "The AI captured one of the player's queens.",
+    "tier": "variant-specific"
+  },
+  "connect_4.player_threat": {
+    "constName": "PLAYER_CONNECT4_THREAT",
+    "description": "The player just created 3 pieces in a winning line (one away from Connect-4).",
+    "tier": "variant-specific"
+  },
+  "connect_4.ai_threat": {
+    "constName": "AI_CONNECT4_THREAT",
+    "description": "The AI just created 3 pieces in a winning line (one away from Connect-4).",
+    "tier": "variant-specific"
+  },
+  "sacrifice.player_sacrifice": {
+    "constName": "PLAYER_SACRIFICE_USED",
+    "description": "The player sacrificed a piece for bonus moves.",
+    "tier": "variant-specific"
+  },
+  "sacrifice.ai_sacrifice": {
+    "constName": "AI_SACRIFICE_USED",
+    "description": "The AI sacrificed a piece for bonus moves.",
+    "tier": "variant-specific"
+  },
+  "rouge_knight.captures_player": {
+    "constName": "ROGUE_KNIGHT_CAPTURES_PLAYER",
+    "description": "The rogue knight captured one of the player's pieces.",
+    "tier": "variant-specific"
+  },
+  "rouge_knight.captures_ai": {
+    "constName": "ROGUE_KNIGHT_CAPTURES_AI",
+    "description": "The rogue knight captured one of the AI's pieces.",
+    "tier": "variant-specific"
+  },
+  "koth.player_king_on_hill": {
+    "constName": "PLAYER_KING_ON_HILL",
+    "description": "The player's king moved onto a hill square.",
+    "tier": "variant-specific"
+  },
+  "koth.ai_king_on_hill": {
+    "constName": "AI_KING_ON_HILL",
+    "description": "The AI's king moved onto a hill square.",
+    "tier": "variant-specific"
+  },
+  "horde.pawn_promotes": {
+    "constName": "HORDE_PAWN_PROMOTES",
+    "description": "The horde (AI) pawn promoted.",
+    "tier": "variant-specific"
+  },
+  "horde.player_horde_pawn_captured": {
+    "constName": "PLAYER_HORDE_PAWN_CAPTURED",
+    "description": "The player captured one of the horde's pawns.",
+    "tier": "variant-specific"
+  },
+  "bishop.player_bishop_converted": {
+    "constName": "PLAYER_BISHOP_CONVERTED",
+    "description": "The player captured one of the AI's bishops.",
+    "tier": "variant-specific"
+  },
+  "bishop.ai_bishop_converted": {
+    "constName": "AI_BISHOP_CONVERTED",
+    "description": "The AI captured one of the player's bishops.",
+    "tier": "variant-specific"
+  },
+  "slippery.player_wall_stop": {
+    "constName": "PLAYER_PIECE_WALL_STOP",
+    "description": "A player's sliding piece (bishop, rook, or queen) slid to the board wall.",
+    "tier": "variant-specific"
+  },
+  "slippery.ai_wall_stop": {
+    "constName": "AI_PIECE_WALL_STOP",
+    "description": "An AI sliding piece (bishop, rook, or queen) slid to the board wall.",
+    "tier": "variant-specific"
+  },
+  "border_buildup.border_dropped": {
+    "constName": "BORDER_DROPPED",
+    "description": "The buildup phase has ended — the wall between the two halves has dropped.",
+    "tier": "variant-specific"
+  },
+  "knight.player_knight_capture": {
+    "constName": "PLAYER_KNIGHT_CAPTURE",
+    "description": "The player captured one of the AI's knights.",
+    "tier": "variant-specific"
+  },
+  "knight.ai_knight_capture": {
+    "constName": "AI_KNIGHT_CAPTURE",
+    "description": "The AI captured one of the player's knights.",
+    "tier": "variant-specific"
+  },
+  "rook.player_rook_capture": {
+    "constName": "PLAYER_ROOK_CAPTURE",
+    "description": "The player captured one of the AI's rooks.",
+    "tier": "variant-specific"
+  },
+  "rook.ai_rook_capture": {
+    "constName": "AI_ROOK_CAPTURE",
+    "description": "The AI captured one of the player's rooks.",
+    "tier": "variant-specific"
+  },
+  "chess_960.player_castles": {
+    "constName": "PLAYER_CASTLES",
+    "description": "The player castled. In Chess 960 the king's path may differ from standard.",
+    "tier": "variant-specific"
+  },
+  "chess_960.ai_castles": {
+    "constName": "AI_CASTLES",
+    "description": "The AI castled.",
+    "tier": "variant-specific"
+  },
+  "claustrophobic.player_pawn_charge": {
+    "constName": "PLAYER_PAWN_CHARGE",
+    "description": "The player double-stepped a pawn, charging directly into the tight confrontation zone.",
+    "tier": "variant-specific"
+  },
+  "claustrophobic.ai_pawn_charge": {
+    "constName": "AI_PAWN_CHARGE",
+    "description": "The AI double-stepped a pawn.",
+    "tier": "variant-specific"
+  },
+  "donut.player_center_pawn_steps": {
+    "constName": "PLAYER_CENTER_PAWN_STEPS",
+    "description": "The player moved a d- or e-pawn one step from its starting rank — it can go no further due to the hole on d4/e4 (for FIRST) or d5/e5 (for SECOND).",
+    "tier": "variant-specific"
+  },
+  "donut.ai_center_pawn_steps": {
+    "constName": "AI_CENTER_PAWN_STEPS",
+    "description": "The AI moved a d- or e-pawn one step from its starting rank.",
+    "tier": "variant-specific"
+  },
+  "snake_draft.opener": {
+    "constName": "SNAKE_DRAFT_OPENER",
+    "description": "FIRST's single-move opening turn just completed — the one-move restriction that neutralises the first-move advantage. Fires exactly once per game.",
+    "tier": "variant-specific"
+  },
+  "hockey.player_behind_net": {
+    "constName": "PLAYER_BEHIND_NET",
+    "description": "A player's piece moved to the net rank (rank 0 or rank 9) — behind a net.",
+    "tier": "variant-specific"
+  },
+  "hockey.ai_behind_net": {
+    "constName": "AI_BEHIND_NET",
+    "description": "An AI piece moved to the net rank (rank 0 or rank 9) — behind a net.",
+    "tier": "variant-specific"
+  },
+  "upside_down.player_promotes": {
+    "constName": "PLAYER_PROMOTES",
+    "description": "The player's pawn promoted.",
+    "tier": "variant-specific"
+  },
+  "upside_down.ai_promotes": {
+    "constName": "AI_PROMOTES",
+    "description": "The AI's pawn promoted.",
+    "tier": "variant-specific"
+  },
+  "crossfire.player_crossfire_hit": {
+    "constName": "PLAYER_CROSSFIRE_HIT",
+    "description": "The player made a capture.",
+    "tier": "variant-specific"
+  },
+  "crossfire.ai_crossfire_hit": {
+    "constName": "AI_CROSSFIRE_HIT",
+    "description": "The AI made a capture.",
+    "tier": "variant-specific"
+  },
+  "touchdown.player_threat": {
+    "constName": "PLAYER_TOUCHDOWN_THREAT",
+    "description": "The player's pawn just reached the rank one step from the enemy back rank — one pawn advance away from an immediate win. Fires only on the turn the pawn first reaches that rank (not every subsequent turn it remains there).",
+    "tier": "variant-specific"
+  },
+  "touchdown.ai_threat": {
+    "constName": "AI_TOUCHDOWN_THREAT",
+    "description": "The AI's pawn just reached the rank one step from the enemy back rank.",
+    "tier": "variant-specific"
+  },
+  "touchdown.player_tackles": {
+    "constName": "PLAYER_TACKLES",
+    "description": "The player captured the AI's most-advanced pawn (the ball carrier — the pawn that held the 🏈 before the capture).",
+    "tier": "variant-specific"
+  },
+  "touchdown.ai_tackles": {
+    "constName": "AI_TACKLES",
+    "description": "The AI captured the player's most-advanced pawn (the ball carrier).",
+    "tier": "variant-specific"
+  },
+  "cheater.ai_using_cheat": {
+    "constName": "AI_USING_CHEAT",
+    "description": "The AI just spent one of its cheat charges and is in the 10-second deep-think window. Fires at the START of that window so the player has something to read while the engine searches. Lines should feel like \"let me just check my phone…\" style deflection from the cheating character.",
+    "tier": "variant-specific"
+  },
+  "powerscaling.budget_five": {
+    "constName": "POWERSCALING_BUDGET_FIVE",
+    "description": "The budget just escalated to 5 for the first time — the incoming player now has a 5-move turn. Fires at most once per game (budget only climbs).",
+    "tier": "variant-specific"
+  },
+  "powerscaling.budget_ten": {
+    "constName": "POWERSCALING_BUDGET_TEN",
+    "description": "The budget just escalated to 10 for the first time — the incoming player now has a 10-move turn. Fires at most once per game.",
+    "tier": "variant-specific"
+  },
+  "colorblind.forfeit": {
+    "constName": "COLORBLIND_FORFEIT",
+    "description": "The opponent just tapped one of this character's pieces and forfeited their turn as a result of the misselection penalty. Fires each time it occurs.",
+    "tier": "variant-specific"
+  },
+  "checkers.player_multi_jump": {
+    "constName": "PLAYER_MULTI_JUMP",
+    "description": "The player completed a multi-jump (two or more captures in a single turn).",
+    "tier": "variant-specific"
+  },
+  "checkers.ai_multi_jump": {
+    "constName": "AI_MULTI_JUMP",
+    "description": "The AI completed a multi-jump (two or more captures in a single turn).",
+    "tier": "variant-specific"
+  },
+  "checkers.player_kinged": {
+    "constName": "PLAYER_KINGED",
+    "description": "The player's checker reached the opponent's back rank and was kinged.",
+    "tier": "variant-specific"
+  },
+  "checkers.ai_kinged": {
+    "constName": "AI_KINGED",
+    "description": "The AI's checker reached the player's back rank and was kinged.",
+    "tier": "variant-specific"
+  },
+  "simultaneous.collision": {
+    "constName": "SIMULTANEOUS_COLLISION",
+    "description": "Both moves resolved into a same-square or swap collision this round — destroying piece(s) from both sides at once. Mutual by definition; not split into player/AI variants.",
+    "tier": "variant-specific"
+  },
+  "simultaneous.player_missed_capture": {
+    "constName": "PLAYER_MISSED_CAPTURE",
+    "description": "The player's move targeted a square the AI's piece occupied before the round resolved, but the AI's simultaneous move relocated it away — \"swerving\" — so no capture happened.",
+    "tier": "variant-specific"
+  },
+  "simultaneous.ai_missed_capture": {
+    "constName": "AI_MISSED_CAPTURE",
+    "description": "The AI's move targeted a square the player's piece occupied before the round resolved, but the player's simultaneous move relocated it away.",
+    "tier": "variant-specific"
+  },
+  "formation.player_expanded": {
+    "constName": "PLAYER_FORMATION_EXPANDED",
+    "description": "The player's exclusive formation area increased after their move.",
+    "tier": "variant-specific"
+  },
+  "formation.ai_expanded": {
+    "constName": "AI_FORMATION_EXPANDED",
+    "description": "The AI's exclusive formation area increased after its move.",
+    "tier": "variant-specific"
+  },
+  "formation.player_boundary_dispute": {
+    "constName": "PLAYER_BOUNDARY_DISPUTE",
+    "description": "The player's move created or enlarged contested territory.",
+    "tier": "variant-specific"
+  },
+  "formation.ai_boundary_dispute": {
+    "constName": "AI_BOUNDARY_DISPUTE",
+    "description": "The AI's move created or enlarged contested territory.",
+    "tier": "variant-specific"
+  },
+  "power_square.player_landing": {
+    "constName": "PLAYER_POWER_SQUARE_LANDING",
+    "description": "The player's piece landed on a power square and earned a bonus move (which it then used or, if it had no legal follow-up, silently forfeited).",
+    "tier": "variant-specific"
+  },
+  "power_square.ai_landing": {
+    "constName": "AI_POWER_SQUARE_LANDING",
+    "description": "The AI's piece landed on a power square and earned a bonus move.",
+    "tier": "variant-specific"
+  },
+  "duck_chess.player_duck_blocks_check": {
+    "constName": "PLAYER_DUCK_BLOCKS_CHECK",
+    "description": "The player's duck placement blocked a capture that was live against their own king one action ago (i.e. their king was attacked right after their board move, and is no longer attacked once the duck landed).",
+    "tier": "variant-specific"
+  },
+  "duck_chess.ai_duck_blocks_check": {
+    "constName": "AI_DUCK_BLOCKS_CHECK",
+    "description": "The AI's duck placement blocked a capture that was live against its own king one action ago.",
+    "tier": "variant-specific"
+  },
+  "palace_chess.player_palace_endangered": {
+    "constName": "PLAYER_PALACE_ENDANGERED",
+    "description": "The player's palace was reduced to exactly one of their own pieces — one more loss away from an instant defeat.",
+    "tier": "variant-specific"
+  },
+  "palace_chess.ai_palace_endangered": {
+    "constName": "AI_PALACE_ENDANGERED",
+    "description": "The AI's palace was reduced to exactly one of its own pieces.",
+    "tier": "variant-specific"
+  },
+  "leftist.player_moved_right": {
+    "constName": "PLAYER_MOVED_RIGHT",
+    "description": "The player moved a piece from the left half of the board (files 0-3) to the right half (files 4-7).",
+    "tier": "variant-specific"
+  },
+  "leftist.ai_moved_right": {
+    "constName": "AI_MOVED_RIGHT",
+    "description": "The AI moved a piece from the left half of the board to the right half.",
+    "tier": "variant-specific"
+  },
+  "leftist.player_moved_left": {
+    "constName": "PLAYER_MOVED_LEFT",
+    "description": "The player moved a piece from the right half of the board back to the left half.",
+    "tier": "variant-specific"
+  },
+  "leftist.ai_moved_left": {
+    "constName": "AI_MOVED_LEFT",
+    "description": "The AI moved a piece from the right half of the board back to the left half.",
+    "tier": "variant-specific"
+  },
+  "demolition.player_square_demolished": {
+    "constName": "PLAYER_SQUARE_DEMOLISHED",
+    "description": "The player demolished a square on the board.",
+    "tier": "variant-specific"
+  },
+  "demolition.ai_square_demolished": {
+    "constName": "AI_SQUARE_DEMOLISHED",
+    "description": "The AI demolished a square on the board.",
+    "tier": "variant-specific"
+  },
+  "demolition.player_demolition_blocks_check": {
+    "constName": "PLAYER_DEMOLITION_BLOCKS_CHECK",
+    "description": "The player's demolition blocked a check that was live one ply ago.",
+    "tier": "variant-specific"
+  },
+  "demolition.ai_demolition_blocks_check": {
+    "constName": "AI_DEMOLITION_BLOCKS_CHECK",
+    "description": "The AI's demolition blocked a check that was live one ply ago.",
+    "tier": "variant-specific"
+  },
+  "rightist.player_moved_left": {
+    "constName": "PLAYER_MOVED_LEFT_RIGHTIST",
+    "description": "The player moved a piece from the right half of the board (files 4-7) to the left half (files 0-3).",
+    "tier": "variant-specific"
+  },
+  "rightist.ai_moved_left": {
+    "constName": "AI_MOVED_LEFT_RIGHTIST",
+    "description": "The AI moved a piece from the right half of the board to the left half.",
+    "tier": "variant-specific"
+  },
+  "rightist.player_moved_right": {
+    "constName": "PLAYER_MOVED_RIGHT_RIGHTIST",
+    "description": "The player moved a piece from the left half of the board back to the right half.",
+    "tier": "variant-specific"
+  },
+  "rightist.ai_moved_right": {
+    "constName": "AI_MOVED_RIGHT_RIGHTIST",
+    "description": "The AI moved a piece from the left half of the board back to the right half.",
+    "tier": "variant-specific"
+  },
+  "centrist.player_left_center": {
+    "constName": "PLAYER_LEFT_CENTER_CENTRIST",
+    "description": "The player moved a piece out of the central 4 files (files 2-5) to either wing (files 0-1 or 6-7).",
+    "tier": "variant-specific"
+  },
+  "centrist.ai_left_center": {
+    "constName": "AI_LEFT_CENTER_CENTRIST",
+    "description": "The AI moved a piece out of the central 4 files to either wing.",
+    "tier": "variant-specific"
+  },
+  "centrist.player_returned_center": {
+    "constName": "PLAYER_RETURNED_CENTER_CENTRIST",
+    "description": "The player moved a piece from either wing back into the central 4 files.",
+    "tier": "variant-specific"
+  },
+  "centrist.ai_returned_center": {
+    "constName": "AI_RETURNED_CENTER_CENTRIST",
+    "description": "The AI moved a piece from either wing back into the central 4 files.",
+    "tier": "variant-specific"
+  },
+  "rewind.player_rewind_used": {
+    "constName": "PLAYER_REWIND_USED",
+    "description": "The player used a rewind charge, discarding the opponent's last 2 turns and the player's own last turn, then took a fresh turn.",
+    "tier": "variant-specific"
+  },
+  "rewind.ai_rewind_used": {
+    "constName": "AI_REWIND_USED",
+    "description": "The AI used a rewind charge.",
+    "tier": "variant-specific"
+  }
+}

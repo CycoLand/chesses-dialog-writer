@@ -1,0 +1,371 @@
+{
+  "generatedFrom": "CharacterCatalog.kt",
+  "characters": [
+    {
+      "variantId": "bishop-chess",
+      "name": "The Bishop",
+      "emoji": "⛪",
+      "portrait": "character images/character_bishop_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "border-buildup-chess",
+      "name": "The General",
+      "emoji": "🪖",
+      "portrait": "character images/character_border_buildup_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "both-sides-chess",
+      "name": "The Commissar",
+      "emoji": "☭",
+      "portrait": "character images/character_both_sides_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "centrist-chess",
+      "name": "The Centrist",
+      "emoji": "⚖️",
+      "portrait": "character images/character_centrist_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "cheater-chess",
+      "name": "The Prodigy",
+      "emoji": "📱",
+      "portrait": "character images/character_cheater_chess.png",
+      "valid": false
+    },
+    {
+      "variantId": "checkers-chess",
+      "name": "The Duchess",
+      "emoji": "🔴",
+      "portrait": "character images/character_checkers_chess.png",
+      "valid": false
+    },
+    {
+      "variantId": "chess-960",
+      "name": "The Theorist",
+      "emoji": "🦉",
+      "portrait": "character images/character_chess_960.png",
+      "valid": true
+    },
+    {
+      "variantId": "claustrophobic-chess",
+      "name": "The Tinyhome Owner",
+      "emoji": "🏡",
+      "portrait": "character images/character_claustrophobic_chess.png",
+      "valid": true,
+      "triggersCovered": 9,
+      "totalLines": 85
+    },
+    {
+      "variantId": "colorblind-chess",
+      "name": "The Purist",
+      "emoji": "⚪",
+      "portrait": "character images/character_colorblind_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "connect-4-chess",
+      "name": "The Patternist",
+      "emoji": "🔴",
+      "portrait": "character images/character_connect_4_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "crossfire-chess",
+      "name": "The Sniper",
+      "emoji": "🎯",
+      "portrait": "character images/character_crossfire_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "cylinder-chess",
+      "name": "The Portal Gunner",
+      "emoji": "🧪",
+      "portrait": "character images/character_cylinder_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "demolition-chess",
+      "name": "The Demolisher",
+      "emoji": "💣",
+      "portrait": "character images/character_demolition_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "donut-chess",
+      "name": "The Officer",
+      "emoji": "👮",
+      "portrait": "character images/character_donut_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "downgrade-chess",
+      "name": "The Doomer",
+      "emoji": "🍄",
+      "portrait": "character images/character_downgrade_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "duck-chess",
+      "name": "The Fowl Keeper",
+      "emoji": "\\ud83e\\udd86",
+      "portrait": "character images/character_duck_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "formation-chess",
+      "name": "The Goose",
+      "emoji": "🪿",
+      "portrait": "character images/character_formation_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "frontline-chess",
+      "name": "The Vanguard",
+      "emoji": "⚔️",
+      "portrait": "character images/character_frontline_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "gay-chess",
+      "name": "The Flamboyant",
+      "emoji": "🌈",
+      "portrait": "character images/character_gay_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "gay-chess-2",
+      "name": "The Diva",
+      "emoji": "👑",
+      "portrait": "character images/character_gay_chess_2.png",
+      "valid": true
+    },
+    {
+      "variantId": "hockey-chess",
+      "name": "The Enforcer",
+      "emoji": "🏒",
+      "portrait": "character images/character_hockey_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "horde-chess",
+      "name": "The Queen Mother",
+      "emoji": "🐜",
+      "portrait": "character images/character_horde_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "identity-theft-chess",
+      "name": "The Shapeshifter",
+      "emoji": "🃏",
+      "portrait": "character images/character_identity_theft_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "king-of-the-hill-chess",
+      "name": "The Groundskeeper",
+      "emoji": "⛰️",
+      "portrait": "character images/character_king_of_the_hill_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "knight-chess",
+      "name": "The Knight",
+      "emoji": "🐴",
+      "portrait": "character images/character_knight_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "landmine-chess",
+      "name": "The Sweeper",
+      "emoji": "💣",
+      "portrait": "character images/character_landmine_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "leashed-chess",
+      "name": "The Handler",
+      "emoji": "🦮",
+      "portrait": "character images/character_leashed_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "leftist-chess",
+      "name": "The Leftist",
+      "emoji": "🚩",
+      "portrait": "character images/character_leftist_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "mana-chess",
+      "name": "The Arcanist",
+      "emoji": "🔮",
+      "portrait": "character images/character_mana_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "monster-chess",
+      "name": "The Changeling",
+      "emoji": "🐺",
+      "portrait": "character images/character_monster_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "nuclear-chess",
+      "name": "The Detonator",
+      "emoji": "☢️",
+      "portrait": "character images/character_nuclear_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "palace-chess",
+      "name": "The Regent",
+      "emoji": "🏯",
+      "portrait": "character images/character_palace_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "pawn-protection-chess",
+      "name": "The Miser",
+      "emoji": "🪙",
+      "portrait": "character images/character_pawn_protection_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "power-square-chess",
+      "name": "The Tempo",
+      "emoji": "🟣",
+      "portrait": "character images/character_power_square_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "powerscaling-chess",
+      "name": "The Accelerator",
+      "emoji": "📈",
+      "portrait": "character images/character_powerscaling_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "rebound-chess",
+      "name": "The Billiard",
+      "emoji": "🎱",
+      "portrait": "character images/character_rebound_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "rewind-chess",
+      "name": "Deep Black",
+      "emoji": "⚫",
+      "portrait": "character images/character_rewind_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "rightist-chess",
+      "name": "The Rightist",
+      "emoji": "🦅",
+      "portrait": "character images/character_rightist_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "rook-chess",
+      "name": "The Castle",
+      "emoji": "🏰",
+      "portrait": "character images/character_rook_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "rouge-knight-chess",
+      "name": "The Rogue",
+      "emoji": "👾",
+      "portrait": "character images/character_rouge_knight_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "sabotage-chess",
+      "name": "The Saboteur",
+      "emoji": "🕵️",
+      "portrait": "character images/character_sabotage_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "sacrifice-chess",
+      "name": "The Gambiteer",
+      "emoji": "🗡️",
+      "portrait": "character images/character_sacrifice_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "simultaneous-chess",
+      "name": "The Murmuration",
+      "emoji": "🌀",
+      "portrait": "character images/character_simultaneous_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "slippery-chess",
+      "name": "The Glacier",
+      "emoji": "🧊",
+      "portrait": "character images/character_slippery_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "snake-draft-chess",
+      "name": "The Adder",
+      "emoji": "🐍",
+      "portrait": "character images/character_snake_draft_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "standard-chess",
+      "name": "The Grandmaster",
+      "emoji": "♟",
+      "portrait": "character images/character_standard_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "table-tilt-chess",
+      "name": "The Geologist",
+      "emoji": "🌋",
+      "portrait": "character images/character_table_tilt_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "teleportation-chess",
+      "name": "The Teleporter",
+      "emoji": "✨",
+      "portrait": "character images/character_teleportation_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "three-check-chess",
+      "name": "The Count",
+      "emoji": "🦇",
+      "portrait": "character images/character_three_check_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "touchdown-chess",
+      "name": "The Coach",
+      "emoji": "🏈",
+      "portrait": "character images/character_touchdown_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "upgrade-chess",
+      "name": "The Bloomer",
+      "emoji": "🌻",
+      "portrait": "character images/character_upgrade_chess.png",
+      "valid": true
+    },
+    {
+      "variantId": "upside-down-chess",
+      "name": "The Contrarian",
+      "emoji": "🙃",
+      "portrait": "character images/character_upside_down_chess.png",
+      "valid": true
+    }
+  ]
+}

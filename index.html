@@ -194,19 +194,16 @@
     <div id="connectForm">
       <label>Your name (shown on claims)</label>
       <input type="text" id="authorNameInput" placeholder="e.g. Zac">
-      <label>GitHub personal access token</label>
-      <input type="password" id="tokenInput" placeholder="ghp_...">
       <div class="status" id="connectHelp">
-        Needs a token with <code>repo</code> scope on
-        <code>CycoLand/chesses-on-android</code> (it's private).
-        <a href="https://github.com/settings/tokens/new?description=Chesses%20Dialog%20Writer&scopes=repo" target="_blank" rel="noopener">Create one here</a>.
-        Stored only in your browser's local storage.
+        No account or token needed. Pick a name so claims can be attributed
+        to you, then hit START. Everything you write is saved to the cloud
+        automatically as you go.
       </div>
-      <button id="connectBtn">CONNECT</button>
+      <button id="connectBtn">START WRITING</button>
     </div>
     <div id="connectedBar">
       <div class="status ok" id="connectedStatus"></div>
-      <button class="secondary" id="disconnectBtn">DISCONNECT</button>
+      <button class="secondary" id="disconnectBtn">CHANGE NAME</button>
     </div>
   </div>
   <div id="searchBox"><input type="text" id="searchInput" placeholder="Filter characters..." disabled></div>
@@ -216,7 +213,7 @@
 <div id="main">
   <div id="claimBanner"></div>
   <div id="mainHeader">
-    <div class="empty-state" style="padding:0;display:block;" id="headerEmpty">Connect, then select a character to begin.</div>
+    <div class="empty-state" style="padding:0;display:block;" id="headerEmpty">Enter your name, then select a character to begin.</div>
     <template id="headerTemplate">
       <img id="mhPortrait" style="display:none">
       <div class="ph-emoji" id="mhEmoji" style="display:none"></div>
@@ -241,175 +238,166 @@
   </div>
 </div>
 
-<script>
+<script type="module">
 'use strict';
 
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+import {
+  getAuth, signInAnonymously, onAuthStateChanged,
+} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+import {
+  getFirestore, doc, getDoc, setDoc, collection, onSnapshot,
+} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+
 // ─────────────────────────────────────────────────────────────────────────
-// Config — which repo this tool edits, and where.
+// Firebase setup. These values are not secret -- they identify the project,
+// not a credential. Access is controlled entirely by firestore.rules
+// (dialogDrafts/* and dialogClaims/* are open to any signed-in user,
+// including anonymous ones -- nothing else in this database is reachable
+// from here).
 // ─────────────────────────────────────────────────────────────────────────
-const REPO_OWNER = "CycoLand";
-const REPO_NAME = "chesses-on-android";
-const REPO_BRANCH = "main";
-const DIALOG_DATA_PATH = "chess-variants-app/dialog-data";
-const DOCS_PATH = "chess-variants-app/docs";
+const firebaseConfig = {
+  apiKey: "AIzaSyCjB9lbZnQZwdLYfsCNKV0cKUyOmPDuWnM",
+  authDomain: "playchesses.firebaseapp.com",
+  projectId: "playchesses",
+  storageBucket: "playchesses.firebasestorage.app",
+  messagingSenderId: "566977066733",
+  appId: "1:566977066733:web:a2f26a06bdb40c96fd7ee4",
+  measurementId: "G-TRVYSN231K",
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const auth = getAuth(firebaseApp);
+const db = getFirestore(firebaseApp);
+
+// ─────────────────────────────────────────────────────────────────────────
+// Config — where the static reference bundle lives (same directory as this
+// file; see build-reference-bundle.mjs).
+// ─────────────────────────────────────────────────────────────────────────
+const DATA_BASE = "./data";
 
 const REQUIRED_KEYS = ["encounter_start", "player_good_move", "player_bad_move", "opponent_wins", "player_wins"];
 const UNIVERSAL_OPTIONAL_KEYS = ["reinforcement_deployed", "anti_cheese_reinforcement"];
 
-const LS_TOKEN_KEY = "chesses-dialog-writer:token";
 const LS_NAME_KEY = "chesses-dialog-writer:author";
 
 // ─────────────────────────────────────────────────────────────────────────
 // State
 // ─────────────────────────────────────────────────────────────────────────
 const state = {
-  token: null,
   authorName: null,
-  manifest: null,          // _manifest.json contents
-  triggerCatalog: null,    // _trigger-catalog.json contents
-  claims: null,            // _claims.json contents ({ claims: { variantId: {...} } })
-  claimsSha: null,         // blob sha of _claims.json, for conditional PUT
+  signedIn: false,
+  manifest: null,          // _manifest.json contents (static bundle)
+  triggerCatalog: null,    // _trigger-catalog.json contents (static bundle)
+  claims: {},              // live-synced from dialogClaims/* via onSnapshot
   currentId: null,
-  currentDoc: null,        // parsed per-character JSON currently being edited
-  currentSha: null,        // blob sha of the currently loaded character file
+  currentDoc: null,        // the per-character document currently being edited
   dirty: false,
 };
 
+let unsubscribeClaims = null;
+
 // ─────────────────────────────────────────────────────────────────────────
-// GitHub Contents API helpers
+// Static reference bundle helpers (manifest, trigger catalog, design docs,
+// guidelines, portraits) -- plain file fetches, no auth, no API calls.
 // ─────────────────────────────────────────────────────────────────────────
 
-function apiHeaders() {
-  return {
-    "Authorization": `Bearer ${state.token}`,
-    "Accept": "application/vnd.github+json",
-  };
+async function fetchJsonStatic(relPath) {
+  const res = await fetch(`${DATA_BASE}/${relPath}`);
+  if (!res.ok) throw new Error(`Failed to load ${relPath}: ${res.status}`);
+  return res.json();
 }
 
-function contentsUrl(path) {
-  return `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}?ref=${encodeURIComponent(REPO_BRANCH)}`;
-}
-
-// Fetches a file's { json, sha } via the Contents API. Throws on any
-// non-2xx/404 response with a readable message.
-async function fetchJsonFile(path) {
-  const res = await fetch(contentsUrl(path), { headers: apiHeaders() });
-  if (!res.ok) {
-    throw new Error(`GET ${path} failed: ${res.status} ${res.statusText}`);
-  }
-  const body = await res.json();
-  const text = b64DecodeUtf8(body.content);
-  return { json: JSON.parse(text), sha: body.sha };
-}
-
-async function tryFetchTextFile(path) {
+async function tryFetchTextStatic(relPath) {
   try {
-    const res = await fetch(contentsUrl(path), { headers: apiHeaders() });
+    const res = await fetch(`${DATA_BASE}/${relPath}`);
     if (!res.ok) return null;
-    const body = await res.json();
-    return b64DecodeUtf8(body.content);
+    return await res.text();
   } catch (e) {
     return null;
   }
 }
 
-async function tryFetchImageDataUrl(path) {
-  try {
-    const res = await fetch(contentsUrl(path), { headers: apiHeaders() });
-    if (!res.ok) return null;
-    const body = await res.json();
-    // Contents API already returns base64 for binary files -- reuse directly.
-    const mime = path.endsWith(".png") ? "image/png" : "image/jpeg";
-    return `data:${mime};base64,${body.content.replace(/\n/g, "")}`;
-  } catch (e) {
-    return null;
-  }
-}
-
-// Writes a JSON file via the Contents API (create or update). `sha` must be
-// the current blob sha when updating an existing file, or omitted/null when
-// creating a brand new one. Returns the new sha.
-async function putJsonFile(path, obj, sha, message) {
-  const content = b64EncodeUtf8(JSON.stringify(obj, null, 2) + "\n");
-  const payload = {
-    message,
-    content,
-    branch: REPO_BRANCH,
-  };
-  if (sha) payload.sha = sha;
-
-  const res = await fetch(
-    `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}`,
-    {
-      method: "PUT",
-      headers: { ...apiHeaders(), "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    }
-  );
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    if (res.status === 409 || (res.status === 422 && /sha/i.test(body.message || ""))) {
-      throw new Error(
-        "Someone else saved this file since you loaded it. Reload the character " +
-        "(click it again in the sidebar) and reapply your changes."
-      );
-    }
-    throw new Error(`Save failed (${res.status}): ${body.message || res.statusText}`);
-  }
-  const body = await res.json();
-  return body.content.sha;
-}
-
-function b64EncodeUtf8(str) {
-  const bytes = new TextEncoder().encode(str);
-  let binary = "";
-  for (const b of bytes) binary += String.fromCharCode(b);
-  return btoa(binary);
-}
-
-function b64DecodeUtf8(b64) {
-  const binary = atob(b64.replace(/\n/g, ""));
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return new TextDecoder().decode(bytes);
+function portraitUrl(relativePath) {
+  if (!relativePath) return null;
+  const fileName = relativePath.split("/").pop();
+  return `${DATA_BASE}/portraits/${fileName}`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Connect / disconnect
+// Firestore helpers for the editable content.
+// ─────────────────────────────────────────────────────────────────────────
+
+async function fetchCharacterDoc(variantId) {
+  const snap = await getDoc(doc(db, "dialogDrafts", variantId));
+  if (!snap.exists()) throw new Error(`No draft found in Firestore for ${variantId}. Run seed-firestore.mjs once.`);
+  return snap.data();
+}
+
+async function saveCharacterDoc(variantId, docData) {
+  await setDoc(doc(db, "dialogDrafts", variantId), docData);
+}
+
+async function saveClaimDoc(variantId, claim) {
+  await setDoc(doc(db, "dialogClaims", variantId), claim);
+}
+
+function startClaimsListener() {
+  if (unsubscribeClaims) unsubscribeClaims();
+  unsubscribeClaims = onSnapshot(collection(db, "dialogClaims"), (snap) => {
+    const next = {};
+    snap.forEach((d) => { next[d.id] = d.data(); });
+    state.claims = next;
+    renderCharList();
+    if (state.currentId) {
+      renderClaimBanner(state.currentId);
+      updateActionButtons(state.currentId);
+      setEditingLocked(isLockedForMe(state.currentId));
+    }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Connect / disconnect (just a display name now -- auth is anonymous and
+// automatic; nothing to paste in, nothing to disconnect from)
 // ─────────────────────────────────────────────────────────────────────────
 
 const connectForm = document.getElementById("connectForm");
 const connectedBar = document.getElementById("connectedBar");
 const connectedStatus = document.getElementById("connectedStatus");
-const tokenInput = document.getElementById("tokenInput");
 const authorNameInput = document.getElementById("authorNameInput");
 const searchInput = document.getElementById("searchInput");
 
-tokenInput.value = localStorage.getItem(LS_TOKEN_KEY) || "";
 authorNameInput.value = localStorage.getItem(LS_NAME_KEY) || "";
 
 document.getElementById("connectBtn").addEventListener("click", connect);
 document.getElementById("disconnectBtn").addEventListener("click", disconnect);
 
+onAuthStateChanged(auth, (user) => {
+  state.signedIn = !!user;
+});
+
+signInAnonymously(auth).catch((e) => {
+  connectedStatus.textContent = "Sign-in error: " + e.message;
+  connectedStatus.className = "status err";
+});
+
 async function connect() {
-  const token = tokenInput.value.trim();
   const authorName = authorNameInput.value.trim();
-  if (!token) { alert("Paste a GitHub personal access token first."); return; }
   if (!authorName) { alert("Enter your name so claims can be attributed to you."); return; }
 
-  state.token = token;
   state.authorName = authorName;
-  localStorage.setItem(LS_TOKEN_KEY, token);
   localStorage.setItem(LS_NAME_KEY, authorName);
 
-  connectedStatus.textContent = "Connecting...";
+  connectedStatus.textContent = "Loading characters...";
   connectedStatus.className = "status";
   connectForm.classList.add("hide");
   connectedBar.classList.add("show");
 
   try {
     await loadManifestAndCatalog();
-    connectedStatus.textContent = `Connected as ${authorName}. ${state.manifest.characters.length} characters loaded.`;
+    startClaimsListener();
+    connectedStatus.textContent = `Hi ${authorName}. ${state.manifest.characters.length} characters loaded.`;
     connectedStatus.className = "status ok";
     searchInput.disabled = false;
     renderCharList();
@@ -422,43 +410,27 @@ async function connect() {
 }
 
 function disconnect() {
-  state.token = null;
   connectForm.classList.remove("hide");
   connectedBar.classList.remove("show");
   searchInput.disabled = true;
   charListEl.innerHTML = "";
+  if (unsubscribeClaims) { unsubscribeClaims(); unsubscribeClaims = null; }
 }
 
 async function loadManifestAndCatalog() {
-  const manifestResult = await fetchJsonFile(`${DIALOG_DATA_PATH}/_manifest.json`);
-  state.manifest = manifestResult.json;
-
-  const catalogResult = await fetchJsonFile(`${DIALOG_DATA_PATH}/_trigger-catalog.json`);
-  state.triggerCatalog = catalogResult.json;
-
-  try {
-    const claimsResult = await fetchJsonFile(`${DIALOG_DATA_PATH}/_claims.json`);
-    state.claims = claimsResult.json;
-    state.claimsSha = claimsResult.sha;
-  } catch (e) {
-    // No claims file yet -- start fresh. putClaims() will create it.
-    state.claims = { claims: {} };
-    state.claimsSha = null;
-  }
+  state.manifest = await fetchJsonStatic("_manifest.json");
+  state.triggerCatalog = await fetchJsonStatic("_trigger-catalog.json");
 }
 
 function claimFor(variantId) {
-  return (state.claims.claims && state.claims.claims[variantId]) || { status: "unclaimed", owner: null };
+  return state.claims[variantId] || { status: "unclaimed", owner: null };
 }
 
-async function saveClaims(message) {
-  const sha = await putJsonFile(`${DIALOG_DATA_PATH}/_claims.json`, state.claims, state.claimsSha, message);
-  state.claimsSha = sha;
-}
-
-// Auto-connect if a token was already saved from a previous visit.
+// Auto-fill if a name was already saved from a previous visit, but still
+// require a click so we know the auth round-trip (and bundle fetch) has
+// settled before wiring everything up.
 window.addEventListener("DOMContentLoaded", () => {
-  if (tokenInput.value && authorNameInput.value) {
+  if (authorNameInput.value) {
     connect();
   }
 });
@@ -470,6 +442,7 @@ window.addEventListener("DOMContentLoaded", () => {
 const charListEl = document.getElementById("charList");
 
 function renderCharList() {
+  if (!state.manifest) return;
   const filter = (searchInput.value || "").toLowerCase();
   charListEl.innerHTML = "";
   for (const c of state.manifest.characters) {
@@ -494,6 +467,9 @@ function renderCharList() {
     emoji.textContent = c.emoji || "?";
     emoji.style.display = "none";
 
+    const url = portraitUrl(c.portrait);
+    if (url) { thumb.src = url; } else { thumb.style.display = "none"; emoji.style.display = "block"; }
+
     const nameWrap = document.createElement("div");
     nameWrap.className = "ci-name";
     nameWrap.innerHTML = `${escapeHtml(c.name)}<small>${escapeHtml(c.variantId)}</small>`;
@@ -504,24 +480,10 @@ function renderCharList() {
     item.appendChild(nameWrap);
     item.addEventListener("click", () => selectCharacter(c.variantId));
     charListEl.appendChild(item);
-
-    resolvePortraitUrl(c.portrait).then((url) => {
-      if (url) { thumb.src = url; } else { thumb.style.display = "none"; emoji.style.display = "block"; }
-    });
   }
 }
 
 searchInput.addEventListener("input", renderCharList);
-
-const portraitUrlCache = new Map();
-async function resolvePortraitUrl(relativePath) {
-  if (!relativePath) return null;
-  const fullPath = `chess-variants-app/${relativePath}`;
-  if (portraitUrlCache.has(fullPath)) return portraitUrlCache.get(fullPath);
-  const url = await tryFetchImageDataUrl(fullPath);
-  portraitUrlCache.set(fullPath, url);
-  return url;
-}
 
 // ─────────────────────────────────────────────────────────────────────────
 // Selecting / loading a character
@@ -544,9 +506,8 @@ async function selectCharacter(variantId) {
   renderCharList();
 
   triggerPane.innerHTML = "<div class='empty-state'>Loading...</div>";
-  const { json: doc, sha } = await fetchJsonFile(`${DIALOG_DATA_PATH}/${variantId}.json`);
+  const doc = await fetchCharacterDoc(variantId);
   state.currentDoc = doc;
-  state.currentSha = sha;
 
   renderHeader(doc);
   renderClaimBanner(doc.variantId);
@@ -598,10 +559,9 @@ function renderHeader(doc) {
 
   const img = document.getElementById("mhPortrait");
   const emojiEl = document.getElementById("mhEmoji");
-  resolvePortraitUrl(doc.portrait).then((url) => {
-    if (url) { img.src = url; img.style.display = "block"; }
-    else { emojiEl.textContent = doc.emoji || "?"; emojiEl.style.display = "block"; }
-  });
+  const url = portraitUrl(doc.portrait);
+  if (url) { img.src = url; img.style.display = "block"; }
+  else { emojiEl.textContent = doc.emoji || "?"; emojiEl.style.display = "block"; }
 
   document.getElementById("saveBtn").addEventListener("click", saveCurrentCharacter);
   document.getElementById("downloadBtn").addEventListener("click", downloadCurrentCharacter);
@@ -621,6 +581,7 @@ function updateActionButtons(variantId) {
   const claimBtn = document.getElementById("claimBtn");
   const releaseBtn = document.getElementById("releaseBtn");
   const doneBtn = document.getElementById("doneBtn");
+  if (!claimBtn) return;
   const isMine = claim.owner === state.authorName && claim.status !== "unclaimed";
 
   claimBtn.style.display = claim.status === "unclaimed" ? "inline-block" : "none";
@@ -631,49 +592,38 @@ function updateActionButtons(variantId) {
 }
 
 async function claimCharacter(variantId) {
-  state.claims.claims[variantId] = {
+  const claim = {
     status: "claimed",
     owner: state.authorName,
     claimedAt: new Date().toISOString(),
     doneAt: null,
   };
   try {
-    await saveClaims(`dialog: ${state.authorName} claims ${variantId}`);
-    renderClaimBanner(variantId);
-    updateActionButtons(variantId);
-    renderCharList();
-    setEditingLocked(isLockedForMe(variantId));
+    await saveClaimDoc(variantId, claim);
   } catch (e) {
     alert("Couldn't save claim: " + e.message);
   }
 }
 
 async function releaseCharacter(variantId) {
-  state.claims.claims[variantId] = { status: "unclaimed", owner: null, claimedAt: null, doneAt: null };
+  const claim = { status: "unclaimed", owner: null, claimedAt: null, doneAt: null };
   try {
-    await saveClaims(`dialog: ${state.authorName} releases claim on ${variantId}`);
-    renderClaimBanner(variantId);
-    updateActionButtons(variantId);
-    renderCharList();
-    setEditingLocked(isLockedForMe(variantId));
+    await saveClaimDoc(variantId, claim);
   } catch (e) {
     alert("Couldn't release claim: " + e.message);
   }
 }
 
 async function markDone(variantId) {
-  const claim = claimFor(variantId);
-  state.claims.claims[variantId] = {
+  const existing = claimFor(variantId);
+  const claim = {
     status: "done",
-    owner: claim.owner || state.authorName,
-    claimedAt: claim.claimedAt || null,
+    owner: existing.owner || state.authorName,
+    claimedAt: existing.claimedAt || null,
     doneAt: new Date().toISOString(),
   };
   try {
-    await saveClaims(`dialog: ${state.authorName} marks ${variantId} as rewritten`);
-    renderClaimBanner(variantId);
-    updateActionButtons(variantId);
-    renderCharList();
+    await saveClaimDoc(variantId, claim);
   } catch (e) {
     alert("Couldn't mark as rewritten: " + e.message);
   }
@@ -934,14 +884,14 @@ function buildTriggerCard(key, doc) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Reference pane: character design doc + guideline checklist link
+// Reference pane: character design doc + guideline checklist (static files)
 // ─────────────────────────────────────────────────────────────────────────
 
 async function renderRefPane(doc) {
   refPane.innerHTML = "<div class='empty-state' style='padding:20px 0;'>Loading reference material...</div>";
 
-  const designDocText = await tryFetchTextFile(`${DOCS_PATH}/character-designs/${doc.variantId}.md`);
-  const guidelinesText = await tryFetchTextFile(`${DOCS_PATH}/13-dialog-guidelines.md`);
+  const designDocText = await tryFetchTextStatic(`character-designs/${doc.variantId}.md`);
+  const guidelinesText = await tryFetchTextStatic(`13-dialog-guidelines.md`);
 
   refPane.innerHTML = "";
 
@@ -956,7 +906,7 @@ async function renderRefPane(doc) {
   h2.textContent = "Dialog Guidelines (doc 13)";
   refPane.appendChild(h2);
   const pre2 = document.createElement("pre");
-  pre2.textContent = guidelinesText || "(docs/13-dialog-guidelines.md not found)";
+  pre2.textContent = guidelinesText || "(13-dialog-guidelines.md not found)";
   refPane.appendChild(pre2);
 }
 
@@ -978,38 +928,14 @@ async function saveCurrentCharacter() {
   }
   const doc = state.currentDoc;
   doc._meta = computeMeta(doc);
+  doc._lastEditedBy = state.authorName;
+  doc._lastEditedAt = new Date().toISOString();
 
   try {
-    const newSha = await putJsonFile(
-      `${DIALOG_DATA_PATH}/${doc.variantId}.json`,
-      doc,
-      state.currentSha,
-      `dialog: update ${doc.name} (${doc.variantId}) via Dialog Writer`
-    );
-    state.currentSha = newSha;
-
-    const entry = state.manifest.characters.find((c) => c.variantId === doc.variantId);
-    if (entry) {
-      entry.triggersCovered = doc._meta.triggersCovered;
-      entry.totalLines = doc._meta.totalLines;
-    }
-    // Best-effort manifest sync; not critical if this particular write loses
-    // a race, since the manifest is informational and gets fully regenerated
-    // by parse-catalog.mjs periodically anyway.
-    try {
-      const manifestResult = await fetchJsonFile(`${DIALOG_DATA_PATH}/_manifest.json`);
-      await putJsonFile(
-        `${DIALOG_DATA_PATH}/_manifest.json`,
-        state.manifest,
-        manifestResult.sha,
-        `dialog: update manifest coverage for ${doc.variantId}`
-      );
-    } catch (e) { /* non-fatal */ }
-
+    await saveCharacterDoc(doc.variantId, doc);
     state.dirty = false;
     setSaveButtonsEnabled(false);
     document.getElementById("saveStatus").textContent = "saved " + new Date().toLocaleTimeString();
-    renderCharList();
   } catch (e) {
     alert("Save failed: " + e.message);
   }
