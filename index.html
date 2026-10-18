@@ -184,7 +184,58 @@
     white-space: pre-wrap; font-family: inherit; font-size: 11px; line-height: 1.5;
     color: #333;
   }
+
+  /* ── Menu blurbs ─────────────────────────────────────────────────────── */
+  #taglinesNav {
+    display: none; align-items: center; gap: 8px;
+    padding: 9px 10px; cursor: pointer; border-bottom: 2px solid #111;
+    background: #dff3d9; font-size: 11px; font-weight: bold; letter-spacing: 1px;
+  }
+  #taglinesNav.show { display: flex; }
+  #taglinesNav:hover { background: #cdebc4; }
+  #taglinesNav.active { background: #4EC83C; }
+  #taglinesNav small { display: block; font-weight: normal; letter-spacing: 0; color: #555; font-size: 9px; }
+  .tl-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; max-width: 1100px; margin-bottom: 12px; }
+  .tl-tools select, .tl-tools input {
+    font-family: inherit; font-size: 12px; padding: 5px 7px; border: 1px solid #999; background: #fff;
+  }
+  .tl-tools input { flex: 1; min-width: 160px; }
+  .tl-tools .tl-counts { font-size: 11px; color: #666; }
+  .tl-guide {
+    max-width: 1100px; background: #fbf8ee; border: 1px solid #ccc; padding: 10px 12px;
+    font-size: 11px; line-height: 1.6; color: #444; margin-bottom: 14px;
+  }
+  .tl-row {
+    display: flex; gap: 10px; align-items: flex-start; max-width: 1100px;
+    padding: 8px 0; border-bottom: 1px solid #e4ddce;
+  }
+  .tl-row.reviewed { background: #f3faf0; }
+  .tl-row input[type=checkbox] { margin-top: 10px; width: 16px; height: 16px; cursor: pointer; }
+  .tl-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .tl-main input[type=text] {
+    width: 100%; font-family: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid #999;
+  }
+  .tl-meta { font-size: 10px; color: #888; display: flex; gap: 4px 10px; flex-wrap: wrap; }
+  .tl-meta .tl-origin { text-transform: uppercase; letter-spacing: 1px; }
+  .tl-meta .tl-origin.new { color: #2a7a2a; font-weight: bold; }
+  .tl-preview {
+    /* 305px = the tagline's text box on a 360dp phone: hexagon 232/260 of
+       the screen, minus 8dp padding a side. Roboto italic 19px is what the
+       app renders (Caveat is declared but the device falls back to Roboto). */
+    width: 305px; flex-shrink: 0; background: #4EC83C; border: 2px solid #111;
+    padding: 6px 0; font-family: 'Roboto', sans-serif; font-style: italic; font-size: 19px;
+    line-height: 24px; text-align: center; color: rgba(26, 26, 26, 0.85);
+  }
+  .tl-preview span {
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .tl-row button.del {
+    font-family: inherit; font-size: 11px; width: 26px; height: 26px; margin-top: 5px;
+    background: #ddd; border: 1px solid #999; cursor: pointer; color: #a02a2a;
+  }
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@1,400&display=swap">
 </head>
 <body>
 
@@ -206,6 +257,7 @@
       <button class="secondary" id="disconnectBtn">CHANGE NAME</button>
     </div>
   </div>
+  <div id="taglinesNav"><span>🟩</span><div>MENU BLURBS<small>Lines under CHESSES on the Campaign button</small></div></div>
   <div id="searchBox"><input type="text" id="searchInput" placeholder="Filter characters..." disabled></div>
   <div id="charList"></div>
 </div>
@@ -400,6 +452,7 @@ async function connect() {
     connectedStatus.textContent = `Hi ${authorName}. ${state.manifest.characters.length} characters loaded.`;
     connectedStatus.className = "status ok";
     searchInput.disabled = false;
+    document.getElementById("taglinesNav").classList.add("show");
     renderCharList();
   } catch (e) {
     connectedStatus.textContent = "Error: " + e.message;
@@ -413,6 +466,7 @@ function disconnect() {
   connectForm.classList.remove("hide");
   connectedBar.classList.remove("show");
   searchInput.disabled = true;
+  document.getElementById("taglinesNav").classList.remove("show");
   charListEl.innerHTML = "";
   if (unsubscribeClaims) { unsubscribeClaims(); unsubscribeClaims = null; }
 }
@@ -503,6 +557,7 @@ async function selectCharacter(variantId) {
   }
   state.currentId = variantId;
   state.dirty = false;
+  document.getElementById("taglinesNav").classList.remove("active");
   renderCharList();
 
   triggerPane.innerHTML = "<div class='empty-state'>Loading...</div>";
@@ -952,6 +1007,269 @@ function downloadCurrentCharacter() {
   a.download = `${doc.variantId}.json`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Menu blurbs: the lines under CHESSES on the Campaign hexagon. One
+// Firestore document (dialogTaglines/menu) holding the whole list, mirrored
+// to dialog-data/_menu-taglines.json by the seed/export scripts.
+// ─────────────────────────────────────────────────────────────────────────
+
+const taglinesNav = document.getElementById("taglinesNav");
+taglinesNav.addEventListener("click", openTaglines);
+
+// About 40 characters fill one line of the 305px preview; past two lines
+// the app cuts the blurb off with an ellipsis.
+const TAGLINE_ONE_LINE_CHARS = 40;
+const TAGLINE_LINE_HEIGHT_PX = 24;
+
+const taglinesState = {
+  list: null,            // [{ text, origin, reviewed }]
+  loadedEditAt: null,    // _lastEditedAt when loaded, to catch a concurrent save
+  filter: "all",
+  search: "",
+};
+
+async function openTaglines() {
+  if (state.dirty && !confirm("You have unsaved changes. Discard them?")) return;
+  state.currentId = null;
+  state.currentDoc = null;
+  state.dirty = false;
+  renderCharList();
+  taglinesNav.classList.add("active");
+  claimBanner.classList.remove("show");
+  refPane.classList.remove("open");
+  triggerPane.innerHTML = "<div class='empty-state'>Loading...</div>";
+
+  const snap = await getDoc(doc(db, "dialogTaglines", "menu"));
+  if (!snap.exists()) {
+    triggerPane.innerHTML = "<div class='empty-state'>No blurbs in Firestore yet. Run seed-firestore.mjs --only=taglines.</div>";
+    return;
+  }
+  const data = snap.data();
+  taglinesState.list = data.taglines.map((t) => ({ text: t.text || "", origin: t.origin || "writer", reviewed: !!t.reviewed }));
+  taglinesState.loadedEditAt = data._lastEditedAt || null;
+  renderTaglinesHeader();
+  renderTaglinesPane();
+}
+
+function renderTaglinesHeader() {
+  headerEmpty.style.display = "none";
+  mainHeader.querySelectorAll(":scope > *:not(#headerEmpty)").forEach((el) => el.remove());
+  const wrap = document.createElement("div");
+  wrap.className = "title";
+  wrap.innerHTML = `<h2>Menu blurbs</h2><div class="sub">Under CHESSES on the green Campaign button. One is picked at random each visit to the menu.</div>`;
+  const actions = document.createElement("div");
+  actions.className = "mh-actions";
+  actions.innerHTML = `<span id="saveStatus"></span>
+    <button id="tlAddBtn">+ ADD BLURB</button>
+    <button id="tlSaveBtn">SAVE BLURBS</button>`;
+  mainHeader.appendChild(wrap);
+  mainHeader.appendChild(actions);
+  document.getElementById("tlAddBtn").addEventListener("click", () => {
+    taglinesState.list.unshift({ text: "", origin: "writer", reviewed: false });
+    taglinesState.filter = "all";
+    taglinesState.search = "";
+    renderTaglinesPane();
+    markTaglinesDirty();
+    const first = triggerPane.querySelector(".tl-main input");
+    if (first) first.focus();
+  });
+  document.getElementById("tlSaveBtn").addEventListener("click", saveTaglines);
+}
+
+function markTaglinesDirty() {
+  state.dirty = true;
+  const status = document.getElementById("saveStatus");
+  if (status) status.textContent = "unsaved changes";
+}
+
+function taglineCounts() {
+  const list = taglinesState.list;
+  return {
+    total: list.filter((t) => t.text.trim()).length,
+    reviewed: list.filter((t) => t.reviewed).length,
+  };
+}
+
+function renderTaglinesPane() {
+  triggerPane.innerHTML = "";
+
+  const guide = document.createElement("div");
+  guide.className = "tl-guide";
+  guide.innerHTML =
+    "Minecraft splash / Terraria title style: short, deadpan, about things a player has actually seen " +
+    "(variants, characters, relics, potions, Deep Black). Don't explain the joke or the rule. " +
+    "The green box is the real width on a small (360dp) phone: one line is best, two is the limit, " +
+    "and anything longer is cut off. Tick the box once you've decided to keep a blurb; every blurb in " +
+    "the list ships, ticked or not, so delete the ones you don't want.";
+  triggerPane.appendChild(guide);
+
+  const tools = document.createElement("div");
+  tools.className = "tl-tools";
+  tools.innerHTML = `
+    <select id="tlFilter">
+      <option value="all">All</option>
+      <option value="unreviewed">Not ticked yet</option>
+      <option value="reviewed">Ticked</option>
+      <option value="original">Original set</option>
+      <option value="new">New this round</option>
+      <option value="problems">Too long or flagged</option>
+    </select>
+    <input type="text" id="tlSearch" placeholder="Search blurbs...">
+    <span class="tl-counts" id="tlCounts"></span>`;
+  triggerPane.appendChild(tools);
+  const filterEl = tools.querySelector("#tlFilter");
+  const searchEl = tools.querySelector("#tlSearch");
+  filterEl.value = taglinesState.filter;
+  searchEl.value = taglinesState.search;
+  filterEl.addEventListener("change", () => { taglinesState.filter = filterEl.value; renderTaglineRows(); });
+  searchEl.addEventListener("input", () => { taglinesState.search = searchEl.value; renderTaglineRows(); });
+
+  const rows = document.createElement("div");
+  rows.id = "tlRows";
+  triggerPane.appendChild(rows);
+  renderTaglineRows();
+}
+
+function updateTaglineCounts(shown) {
+  const el = document.getElementById("tlCounts");
+  if (!el) return;
+  const { total, reviewed } = taglineCounts();
+  el.textContent = `${shown} shown · ${total} blurbs · ${reviewed} ticked`;
+}
+
+function lintTagline(text, lineCount, list) {
+  const t = text.trim();
+  const notes = [];
+  let err = false;
+  if (!t) return { notes: ["Empty; dropped on save."], err: false };
+  if (lineCount > 2) { notes.push(`${lineCount} lines: the app cuts it off after two.`); err = true; }
+  else if (lineCount === 2) notes.push("Two lines on a small phone.");
+  if (/[—–]/.test(t)) notes.push("Contains a dash.");
+  const dupes = list.filter((o) => o.text.trim().toLowerCase() === t.toLowerCase()).length;
+  if (dupes > 1) { notes.push("Duplicate."); err = true; }
+  return { notes, err };
+}
+
+function renderTaglineRows() {
+  const rowsEl = document.getElementById("tlRows");
+  rowsEl.innerHTML = "";
+  const list = taglinesState.list;
+  const q = taglinesState.search.trim().toLowerCase();
+  let shown = 0;
+
+  list.forEach((entry, idx) => {
+    if (q && !entry.text.toLowerCase().includes(q)) return;
+    const f = taglinesState.filter;
+    if (f === "unreviewed" && entry.reviewed) return;
+    if (f === "reviewed" && !entry.reviewed) return;
+    if (f === "original" && entry.origin !== "original") return;
+    if (f === "new" && entry.origin === "original") return;
+
+    const row = document.createElement("div");
+    row.className = "tl-row" + (entry.reviewed ? " reviewed" : "");
+
+    const tick = document.createElement("input");
+    tick.type = "checkbox";
+    tick.checked = entry.reviewed;
+    tick.title = "Ticked: kept after review";
+    tick.addEventListener("change", () => {
+      entry.reviewed = tick.checked;
+      row.classList.toggle("reviewed", tick.checked);
+      updateTaglineCounts(shown);
+      markTaglinesDirty();
+    });
+
+    const main = document.createElement("div");
+    main.className = "tl-main";
+    const input = document.createElement("input");
+    input.type = "text";
+    input.value = entry.text;
+    const meta = document.createElement("div");
+    meta.className = "tl-meta";
+    main.appendChild(input);
+    main.appendChild(meta);
+
+    const preview = document.createElement("div");
+    preview.className = "tl-preview";
+    const previewText = document.createElement("span");
+    preview.appendChild(previewText);
+
+    const del = document.createElement("button");
+    del.className = "del";
+    del.textContent = "✕";
+    del.title = "Delete blurb";
+    del.addEventListener("click", () => {
+      list.splice(idx, 1);
+      markTaglinesDirty();
+      renderTaglineRows();
+    });
+
+    row.appendChild(tick);
+    row.appendChild(main);
+    row.appendChild(preview);
+    row.appendChild(del);
+
+    function refresh() {
+      previewText.textContent = entry.text || " ";
+      // Measure unclamped, then let the CSS clamp show what the app shows.
+      previewText.style.webkitLineClamp = "unset";
+      const lines = Math.max(1, Math.round(previewText.offsetHeight / TAGLINE_LINE_HEIGHT_PX));
+      previewText.style.webkitLineClamp = "2";
+      const { notes, err } = lintTagline(entry.text, lines, list);
+      const originLabel = entry.origin === "original" ? "original" : entry.origin === "writer" ? "added here" : "new";
+      meta.innerHTML =
+        `<span class="tl-origin ${entry.origin === "original" ? "" : "new"}">${escapeHtml(originLabel)}</span>` +
+        `<span>${entry.text.trim().length} chars</span>` +
+        (notes.length ? `<span style="color:${err ? "#a02a2a" : "#b5841f"}">${escapeHtml(notes.join(" "))}</span>` : "");
+      return { lines, err, long: entry.text.trim().length > TAGLINE_ONE_LINE_CHARS };
+    }
+
+    input.addEventListener("input", () => {
+      entry.text = input.value;
+      refresh();
+      markTaglinesDirty();
+    });
+
+    rowsEl.appendChild(row);
+    const result = refresh();
+    if (f === "problems" && !(result.err || result.lines > 1)) { row.remove(); return; }
+    shown++;
+  });
+
+  updateTaglineCounts(shown);
+}
+
+async function saveTaglines() {
+  const btn = document.getElementById("tlSaveBtn");
+  btn.disabled = true;
+  try {
+    const current = await getDoc(doc(db, "dialogTaglines", "menu"));
+    const theirs = current.exists() ? current.data() : {};
+    if ((theirs._lastEditedAt || null) !== taglinesState.loadedEditAt) {
+      const who = theirs._lastEditedBy || "someone";
+      if (!confirm(`${who} saved the blurbs after you opened them. Overwrite their version with yours?`)) return;
+    }
+    const taglines = taglinesState.list
+      .filter((t) => t.text.trim())
+      .map((t) => ({ text: t.text.trim(), origin: t.origin, reviewed: t.reviewed }));
+    const editedAt = new Date().toISOString();
+    await setDoc(doc(db, "dialogTaglines", "menu"), {
+      taglines,
+      _lastEditedBy: state.authorName,
+      _lastEditedAt: editedAt,
+    });
+    taglinesState.list = taglines;
+    taglinesState.loadedEditAt = editedAt;
+    state.dirty = false;
+    renderTaglineRows();
+    document.getElementById("saveStatus").textContent = "saved " + new Date().toLocaleTimeString();
+  } catch (e) {
+    alert("Save failed: " + e.message);
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────
